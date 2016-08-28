@@ -233,16 +233,15 @@ internal_tap_read( libspectrum_tape *tape, const libspectrum_byte *buffer,
 		   const size_t length, libspectrum_id_t type );
 
 libspectrum_error
-internal_tap_write( libspectrum_byte **buffer, size_t *length,
-		    libspectrum_tape *tape, libspectrum_id_t type );
+internal_tap_write( libspectrum_buffer *buffer, libspectrum_tape *tape,
+                    libspectrum_id_t type );
 
 libspectrum_error
 internal_tzx_read( libspectrum_tape *tape, const libspectrum_byte *buffer,
 		   const size_t length );
 
 libspectrum_error
-internal_tzx_write( libspectrum_byte **buffer, size_t *length,
-		    libspectrum_tape *tape );
+internal_tzx_write( libspectrum_buffer *buffer, libspectrum_tape *tape );
 
 libspectrum_error
 internal_warajevo_read( libspectrum_tape *tape,
@@ -257,8 +256,7 @@ libspectrum_csw_read( libspectrum_tape *tape,
                       const libspectrum_byte *buffer, size_t length );
 
 libspectrum_error
-libspectrum_csw_write( libspectrum_byte **buffer, size_t *length,
-                       libspectrum_tape *tape );
+libspectrum_csw_write( libspectrum_buffer *buffer, libspectrum_tape *tape );
 
 libspectrum_error
 libspectrum_wav_read( libspectrum_tape *tape, const char *filename );

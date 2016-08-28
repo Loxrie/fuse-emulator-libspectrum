@@ -295,6 +295,39 @@ typedef enum libspectrum_class_t {
 
 } libspectrum_class_t;
 
+typedef struct libspectrum_buffer libspectrum_buffer;
+
+WIN32_DLL libspectrum_buffer*
+libspectrum_buffer_alloc( void );
+WIN32_DLL void
+libspectrum_buffer_free( libspectrum_buffer *buffer );
+
+WIN32_DLL int
+libspectrum_buffer_is_empty( libspectrum_buffer *buffer );
+WIN32_DLL int
+libspectrum_buffer_is_not_empty( libspectrum_buffer *buffer );
+
+WIN32_DLL void
+libspectrum_buffer_write_byte( libspectrum_buffer *buffer,
+                               const libspectrum_byte data );
+WIN32_DLL void
+libspectrum_buffer_write_word( libspectrum_buffer *buffer,
+                               const libspectrum_word data );
+WIN32_DLL void
+libspectrum_buffer_write_dword( libspectrum_buffer *buffer,
+                                const libspectrum_dword data );
+WIN32_DLL void
+libspectrum_buffer_write( libspectrum_buffer *buffer, const void *data,
+                          const size_t size );
+
+WIN32_DLL size_t
+libspectrum_buffer_get_data_size( libspectrum_buffer *buffer );
+WIN32_DLL libspectrum_byte*
+libspectrum_buffer_get_data( libspectrum_buffer *buffer );
+
+WIN32_DLL void
+libspectrum_buffer_clear( libspectrum_buffer *buffer );
+
 WIN32_DLL libspectrum_error
 libspectrum_identify_file( libspectrum_id_t *type, const char *filename,
                            const unsigned char *buffer, size_t length );
@@ -647,8 +680,8 @@ libspectrum_tape_read( libspectrum_tape *tape, const libspectrum_byte *buffer,
 
 /* Write a tape file */
 WIN32_DLL libspectrum_error
-libspectrum_tape_write( libspectrum_byte **buffer, size_t *length,
-			libspectrum_tape *tape, libspectrum_id_t type );
+libspectrum_tape_write( libspectrum_buffer *buffer, libspectrum_tape *tape,
+                        libspectrum_id_t type );
 
 /* Does this tape structure actually contain a tape? */
 WIN32_DLL int libspectrum_tape_present( const libspectrum_tape *tape );

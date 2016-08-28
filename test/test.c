@@ -223,33 +223,6 @@ test_2( void )
   return TEST_PASS;
 }
 
-/* Test for bug #1725864: writing empty .tap file causes crash */
-static test_return_t
-test_3( void )
-{
-  libspectrum_tape *tape;
-  libspectrum_byte *buffer = (libspectrum_byte*)1;
-  size_t length = 0;
-
-  tape = libspectrum_tape_alloc();
-
-  if( libspectrum_tape_write( &buffer, &length, tape, LIBSPECTRUM_ID_TAPE_TAP ) ) {
-    libspectrum_tape_free( tape );
-    return TEST_INCOMPLETE;
-  }
-
-  /* `buffer' should now have been set to NULL */
-  if( buffer ) {
-    fprintf( stderr, "%s: `buffer' was not NULL after libspectrum_tape_write()\n", progname );
-    libspectrum_tape_free( tape );
-    return TEST_FAIL;
-  }
-
-  if( libspectrum_tape_free( tape ) ) return TEST_INCOMPLETE;
-
-  return TEST_PASS;
-}
-
 /* Test for bug #1753279: invalid compressed file causes crash */
 static test_return_t
 test_4( void )
@@ -382,8 +355,7 @@ test_18( void )
 static test_return_t
 test_19( void )
 {
-  libspectrum_byte *buffer = NULL;
-  size_t length = 0;
+  libspectrum_buffer *buffer = libspectrum_buffer_alloc();
   libspectrum_tape *tape;
   const char *filename = DYNAMIC_TEST_PATH( "complete-tzx.tzx" );
   test_return_t r;
@@ -391,15 +363,14 @@ test_19( void )
   r = load_tape( &tape, filename, LIBSPECTRUM_ERROR_NONE );
   if( r ) return r;
 
-  if( libspectrum_tape_write( &buffer, &length, tape,
-                              LIBSPECTRUM_ID_TAPE_TAP ) ) {
+  if( libspectrum_tape_write( buffer, tape, LIBSPECTRUM_ID_TAPE_TAP ) ) {
     fprintf( stderr, "%s: writing `%s' to a .tap file was not successful\n",
              progname, filename );
     libspectrum_tape_free( tape );
     return TEST_INCOMPLETE;
   }
 
-  libspectrum_free( buffer );
+  libspectrum_buffer_free( buffer );
 
   if( libspectrum_tape_free( tape ) ) return TEST_INCOMPLETE;
 
@@ -744,7 +715,6 @@ struct test_description {
 static struct test_description tests[] = {
   { test_1, "Tape with unknown block", 0 },
   { test_2, "TZX turbo data with zero pilot pulses and zero data", 0 },
-  { test_3, "Writing empty .tap file", 0 },
   { test_4, "Invalid compressed file 1", 0 },
   { test_5, "Invalid compressed file 2", 0 },
   { test_6, "Pointer wraparound in SZX file", 0 },
