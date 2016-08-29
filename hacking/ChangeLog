@@ -1125,3 +1125,5 @@ hacking/ChangeLog: the small scale changelog for libspectrum
          APIs (Fred).
 20160829 buffer.c,internals.h,libspectrum.h.in,sna.c,snapshot.c: switch to
          using libspectrum_buffer in libspectrum_sna_write() (Fred).
+20160829 internals.h,snapshot.c,z80.c: switch to using libspectrum_buffer in
+         libspectrum_z80_write2() (Fred).

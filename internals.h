@@ -196,8 +196,8 @@ libspectrum_error
 internal_z80_read( libspectrum_snap *snap,
 		   const libspectrum_byte *buffer, size_t buffer_length );
 libspectrum_error
-libspectrum_z80_write2( libspectrum_byte **buffer, size_t *length,
-			int *out_flags, libspectrum_snap *snap, int in_flags );
+libspectrum_z80_write2( libspectrum_buffer *buffer, int *out_flags,
+                        libspectrum_snap *snap, int in_flags );
 libspectrum_error
 libspectrum_zxs_read( libspectrum_snap *snap,
 		      const libspectrum_byte *buffer, size_t buffer_length );

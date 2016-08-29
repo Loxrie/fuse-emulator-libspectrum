@@ -450,7 +450,14 @@ libspectrum_snap_write( libspectrum_byte **buffer, size_t *length,
 				  in_flags );
 
   case LIBSPECTRUM_ID_SNAPSHOT_Z80:
-    return libspectrum_z80_write2( buffer, length, out_flags, snap, in_flags );
+    {
+      ptr = *buffer;
+      new_buffer = libspectrum_buffer_alloc();
+      error = libspectrum_z80_write2( new_buffer, out_flags, snap, in_flags );
+      libspectrum_buffer_append( buffer, length, &ptr, new_buffer );
+      libspectrum_buffer_free( new_buffer );
+      return error;
+    }
 
   default:
     libspectrum_print_error( LIBSPECTRUM_ERROR_UNKNOWN,
