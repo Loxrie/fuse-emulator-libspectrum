@@ -108,14 +108,38 @@ libspectrum_buffer_write_dword( libspectrum_buffer *buffer,
 }
 
 void
-libspectrum_buffer_write( libspectrum_buffer *buffer, const void* data,
-                          const size_t size )
+libspectrum_buffer_write_buffer( libspectrum_buffer *dest,
+                                 libspectrum_buffer *src )
+{
+  libspectrum_buffer_write( dest, src->buffer, src->bytes_used );
+}
+
+static void
+reallocate_to_new_size( libspectrum_buffer *buffer, const size_t size )
 {
   while ( size > buffer->buffer_size - buffer->bytes_used ) {
     reallocate( buffer, 2 * buffer->buffer_size );
   }
+}
+
+void
+libspectrum_buffer_write( libspectrum_buffer *buffer, const void* data,
+                          const size_t size )
+{
+  reallocate_to_new_size( buffer, size );
 
   memcpy( buffer->buffer + buffer->bytes_used, data, size );
+
+  buffer->bytes_used += size;
+}
+
+void
+libspectrum_buffer_set( libspectrum_buffer *buffer, libspectrum_byte value,
+                        const size_t size )
+{
+  reallocate_to_new_size( buffer, size );
+
+  memset( buffer->buffer + buffer->bytes_used, value, size );
 
   buffer->bytes_used += size;
 }
@@ -136,4 +160,13 @@ void
 libspectrum_buffer_clear( libspectrum_buffer *buffer )
 {
   buffer->bytes_used = 0;
+}
+
+void
+libspectrum_buffer_append( libspectrum_byte **buffer, size_t *length,
+                           libspectrum_byte **ptr, libspectrum_buffer *src )
+{
+  libspectrum_make_room( buffer, src->bytes_used, ptr, length );
+  memcpy( *ptr, src->buffer, src->bytes_used );
+  *ptr += src->bytes_used;
 }

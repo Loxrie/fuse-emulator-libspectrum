@@ -1123,3 +1123,5 @@ hacking/ChangeLog: the small scale changelog for libspectrum
 20160828 Makefile.am,buffer.c,csw.c,internals.h,libspectrum.h.in,tap.c,tape.c,
          test/test.c,tzx_write.c: switch to using libspectrum_buffer in tape
          APIs (Fred).
+20160829 buffer.c,internals.h,libspectrum.h.in,sna.c,snapshot.c: switch to
+         using libspectrum_buffer in libspectrum_sna_write() (Fred).

@@ -177,8 +177,8 @@ libspectrum_error
 internal_sna_read( libspectrum_snap *snap,
 		   const libspectrum_byte *buffer, size_t buffer_length );
 libspectrum_error
-libspectrum_sna_write( libspectrum_byte **buffer, size_t *length,
-		       int *out_flags, libspectrum_snap *snap, int in_flags );
+libspectrum_sna_write( libspectrum_buffer *buffer, int *out_flags,
+                       libspectrum_snap *snap, int in_flags );
 libspectrum_error
 libspectrum_snp_read( libspectrum_snap *snap,
 		      const libspectrum_byte *buffer, size_t buffer_length );

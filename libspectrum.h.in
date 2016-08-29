@@ -317,8 +317,14 @@ WIN32_DLL void
 libspectrum_buffer_write_dword( libspectrum_buffer *buffer,
                                 const libspectrum_dword data );
 WIN32_DLL void
+libspectrum_buffer_write_buffer( libspectrum_buffer *dest,
+                                 libspectrum_buffer *src );
+WIN32_DLL void
 libspectrum_buffer_write( libspectrum_buffer *buffer, const void *data,
                           const size_t size );
+WIN32_DLL void
+libspectrum_buffer_set( libspectrum_buffer *buffer, libspectrum_byte value,
+                        const size_t size );
 
 WIN32_DLL size_t
 libspectrum_buffer_get_data_size( libspectrum_buffer *buffer );
@@ -327,6 +333,10 @@ libspectrum_buffer_get_data( libspectrum_buffer *buffer );
 
 WIN32_DLL void
 libspectrum_buffer_clear( libspectrum_buffer *buffer );
+
+WIN32_DLL void
+libspectrum_buffer_append( libspectrum_byte **buffer, size_t *length,
+                           libspectrum_byte **ptr, libspectrum_buffer *src );
 
 WIN32_DLL libspectrum_error
 libspectrum_identify_file( libspectrum_id_t *type, const char *filename,

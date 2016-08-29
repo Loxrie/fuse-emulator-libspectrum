@@ -421,6 +421,8 @@ libspectrum_snap_write( libspectrum_byte **buffer, size_t *length,
 {
   libspectrum_class_t class;
   libspectrum_error error;
+  libspectrum_byte *ptr;
+  libspectrum_buffer *new_buffer;
 
   error = libspectrum_identify_class( &class, type );
   if( error ) return error;
@@ -434,7 +436,14 @@ libspectrum_snap_write( libspectrum_byte **buffer, size_t *length,
   switch( type ) {
 
   case LIBSPECTRUM_ID_SNAPSHOT_SNA:
-    return libspectrum_sna_write( buffer, length, out_flags, snap, in_flags );
+    {
+      ptr = *buffer;
+      new_buffer = libspectrum_buffer_alloc();
+      error = libspectrum_sna_write( new_buffer, out_flags, snap, in_flags );
+      libspectrum_buffer_append( buffer, length, &ptr, new_buffer );
+      libspectrum_buffer_free( new_buffer );
+      return error;
+    }
 
   case LIBSPECTRUM_ID_SNAPSHOT_SZX:
     return libspectrum_szx_write( buffer, length, out_flags, snap, creator,
