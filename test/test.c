@@ -123,7 +123,7 @@ read_snap( const char *filename, const char *filename_to_pass,
 
   libspectrum_free( buffer );
 
-  if( libspectrum_snap_free( snap ) ) return TEST_INCOMPLETE;
+  libspectrum_snap_free( snap );
 
   return TEST_PASS;
 }
@@ -539,18 +539,24 @@ test_25( void )
 {
   const char *filename = STATIC_TEST_PATH( "empty.z80" );
   libspectrum_byte *buffer = NULL;
+  libspectrum_byte *ptr;
   size_t filesize = 0, length = 0;
   libspectrum_snap *snap;
   int flags;
   test_return_t r = TEST_INCOMPLETE;
+  libspectrum_buffer *new_buffer = libspectrum_buffer_alloc();
 
-  if( read_file( &buffer, &filesize, filename ) ) return TEST_INCOMPLETE;
+  if( read_file( &buffer, &filesize, filename ) ) {
+    libspectrum_buffer_free( new_buffer );
+    return TEST_INCOMPLETE;
+  }
 
   snap = libspectrum_snap_alloc();
 
   if( libspectrum_snap_read( snap, buffer, filesize, LIBSPECTRUM_ID_UNKNOWN,
 			     filename ) != LIBSPECTRUM_ERROR_NONE ) {
     fprintf( stderr, "%s: reading `%s' failed\n", progname, filename );
+    libspectrum_buffer_free( new_buffer );
     libspectrum_snap_free( snap );
     libspectrum_free( buffer );
     return TEST_INCOMPLETE;
@@ -559,7 +565,7 @@ test_25( void )
   libspectrum_free( buffer );
   buffer = NULL;
 
-  if( libspectrum_snap_write( &buffer, &length, &flags, snap,
+  if( libspectrum_snap_write( new_buffer, &flags, snap,
                               LIBSPECTRUM_ID_SNAPSHOT_SNA, NULL, 0 ) != 
       LIBSPECTRUM_ERROR_NONE ) {
     fprintf( stderr, "%s: serialising to SNA failed\n", progname );
@@ -567,8 +573,11 @@ test_25( void )
     return TEST_INCOMPLETE;
   }
 
+  libspectrum_buffer_free( new_buffer );
   libspectrum_snap_free( snap );
   snap = libspectrum_snap_alloc();
+
+  libspectrum_buffer_append( &buffer, &length, &ptr, new_buffer );
 
   if( libspectrum_snap_read( snap, buffer, length, LIBSPECTRUM_ID_SNAPSHOT_SNA,
                              NULL ) != LIBSPECTRUM_ERROR_NONE ) {
@@ -604,18 +613,24 @@ test_26( void )
 {
   const char *filename = STATIC_TEST_PATH( "plus3.z80" );
   libspectrum_byte *buffer = NULL;
+  libspectrum_byte *ptr;
   size_t filesize = 0, length = 0;
   libspectrum_snap *snap;
   int flags;
   test_return_t r = TEST_INCOMPLETE;
+  libspectrum_buffer *new_buffer = libspectrum_buffer_alloc();
 
-  if( read_file( &buffer, &filesize, filename ) ) return TEST_INCOMPLETE;
+  if( read_file( &buffer, &filesize, filename ) ) {
+    libspectrum_buffer_free( new_buffer );
+    return TEST_INCOMPLETE;
+  }
 
   snap = libspectrum_snap_alloc();
 
   if( libspectrum_snap_read( snap, buffer, filesize, LIBSPECTRUM_ID_UNKNOWN,
 			     filename ) != LIBSPECTRUM_ERROR_NONE ) {
     fprintf( stderr, "%s: reading `%s' failed\n", progname, filename );
+    libspectrum_buffer_free( new_buffer );
     libspectrum_snap_free( snap );
     libspectrum_free( buffer );
     return TEST_INCOMPLETE;
@@ -624,16 +639,19 @@ test_26( void )
   libspectrum_free( buffer );
   buffer = NULL;
 
-  if( libspectrum_snap_write( &buffer, &length, &flags, snap,
+  if( libspectrum_snap_write( new_buffer, &flags, snap,
                               LIBSPECTRUM_ID_SNAPSHOT_Z80, NULL, 0 ) != 
       LIBSPECTRUM_ERROR_NONE ) {
     fprintf( stderr, "%s: serialising to Z80 failed\n", progname );
+    libspectrum_buffer_free( new_buffer );
     libspectrum_snap_free( snap );
     return TEST_INCOMPLETE;
   }
 
   libspectrum_snap_free( snap );
   snap = libspectrum_snap_alloc();
+
+  libspectrum_buffer_append( &buffer, &length, &ptr, new_buffer );
 
   if( libspectrum_snap_read( snap, buffer, length, LIBSPECTRUM_ID_SNAPSHOT_Z80,
                              NULL ) != LIBSPECTRUM_ERROR_NONE ) {

@@ -1373,6 +1373,7 @@ rzx_write_snapshot( libspectrum_byte **buffer, libspectrum_byte **ptr,
   libspectrum_byte *gzsnap = NULL; size_t gzlength = 0;
   int flags, done;
   snapshot_string_t *type;
+  libspectrum_buffer *new_buffer = libspectrum_buffer_alloc();
 
   snap_length = 0;
 
@@ -1380,23 +1381,41 @@ rzx_write_snapshot( libspectrum_byte **buffer, libspectrum_byte **ptr,
     /* If not given a snap format, try using .z80. If that would result
        in major information loss, use .szx instead */
     snap_format = LIBSPECTRUM_ID_SNAPSHOT_Z80;
-    error = libspectrum_snap_write( &snap_buffer, &snap_length, &flags, snap,
-				    snap_format, creator, 0 );
-    if( error ) return error;
+    error = libspectrum_snap_write( new_buffer, &flags, snap, snap_format,
+                                    creator, 0 );
+    snap_length = libspectrum_buffer_get_data_size( new_buffer );
+    snap_buffer = libspectrum_new( libspectrum_byte, snap_length );
+    memcpy( snap_buffer, libspectrum_buffer_get_data( new_buffer ),
+            snap_length );
+    if( error ) {
+      libspectrum_buffer_free( new_buffer );
+      return error;
+    }
 
     if( flags & LIBSPECTRUM_FLAG_SNAPSHOT_MAJOR_INFO_LOSS ) {
       libspectrum_free( snap_buffer ); snap_length = 0;
       snap_format = LIBSPECTRUM_ID_SNAPSHOT_SZX;
-      error = libspectrum_snap_write( &snap_buffer, &snap_length, &flags, snap,
-				      snap_format, creator, 0 );
-      if( error ) return error;
+      error = libspectrum_snap_write( new_buffer, &flags, snap, snap_format,
+                                      creator, 0 );
+      snap_length = libspectrum_buffer_get_data_size( new_buffer );
+      snap_buffer = libspectrum_new( libspectrum_byte, snap_length );
+      memcpy( snap_buffer, libspectrum_buffer_get_data( new_buffer ),
+              snap_length );
+      if( error ) {
+        libspectrum_buffer_free( new_buffer );
+        return error;
+      }
     }
-
   } else {
-    error = libspectrum_snap_write( &snap_buffer, &snap_length, &flags, snap,
-				    snap_format, creator, 0 );
-    if( error ) return error;
+    error = libspectrum_snap_write( new_buffer, &flags, snap, snap_format,
+                                    creator, 0 );
+    if( error ) {
+      libspectrum_buffer_free( new_buffer );
+      return error;
+    }
   }
+
+  libspectrum_buffer_free( new_buffer );
 
   if( flags & LIBSPECTRUM_FLAG_SNAPSHOT_MAJOR_INFO_LOSS ) {
     libspectrum_print_error( LIBSPECTRUM_ERROR_WARNING,

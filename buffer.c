@@ -111,7 +111,7 @@ void
 libspectrum_buffer_write_buffer( libspectrum_buffer *dest,
                                  libspectrum_buffer *src )
 {
-  libspectrum_buffer_write( dest, src->buffer, src->bytes_used );
+  if( src ) libspectrum_buffer_write( dest, src->buffer, src->bytes_used );
 }
 
 static void
