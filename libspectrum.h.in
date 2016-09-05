@@ -789,13 +789,12 @@ WIN32_DLL libspectrum_word libspectrum_tape_generalised_data_symbol_pulse( const
 typedef struct libspectrum_rzx libspectrum_rzx;
 
 WIN32_DLL libspectrum_rzx* libspectrum_rzx_alloc( void );
-WIN32_DLL libspectrum_error libspectrum_rzx_free( libspectrum_rzx *rzx );
+WIN32_DLL void libspectrum_rzx_free( libspectrum_rzx *rzx );
 
 WIN32_DLL void
 libspectrum_rzx_start_input( libspectrum_rzx *rzx, libspectrum_dword tstates );
-WIN32_DLL libspectrum_error
-libspectrum_rzx_stop_input( libspectrum_rzx *rzx );
-WIN32_DLL libspectrum_error
+WIN32_DLL void libspectrum_rzx_stop_input( libspectrum_rzx *rzx );
+WIN32_DLL void
 libspectrum_rzx_add_snap( libspectrum_rzx *rzx, libspectrum_snap *snap, int automatic );
 WIN32_DLL libspectrum_error
 libspectrum_rzx_rollback( libspectrum_rzx *rzx, libspectrum_snap **snap );
@@ -849,8 +848,8 @@ libspectrum_rzx_read( libspectrum_rzx *rzx, const libspectrum_byte *buffer,
 		      size_t length );
 
 WIN32_DLL libspectrum_error
-libspectrum_rzx_write( libspectrum_byte **buffer, size_t *length,
-		       libspectrum_rzx *rzx, libspectrum_id_t snap_format,
+libspectrum_rzx_write( libspectrum_buffer *buffer, libspectrum_rzx *rzx,
+                       libspectrum_id_t snap_format,
 		       libspectrum_creator *creator, int compress,
 		       libspectrum_rzx_dsa_key *key );
 

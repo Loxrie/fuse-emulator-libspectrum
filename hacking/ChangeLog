@@ -1130,3 +1130,5 @@ hacking/ChangeLog: the small scale changelog for libspectrum
 20160831 buffer.c,creator.c,internals.h,libspectrum.h.in,rzx.c,snapshot.c,
          szx.c,test/test.c: switch to using libspectrum_buffer in
          libspectrum_szx_write() and libspectrum_snap_write() (Fred).
+20160905 libspectrum.h.in,rzx.c: switch to using libspectrum_buffer in
+         libspectrum_rzx_write() (Fred).
