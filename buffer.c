@@ -40,8 +40,9 @@ struct libspectrum_buffer {
   size_t bytes_used;
 };
 
-static void
-reallocate( libspectrum_buffer *buffer, const size_t new_size )
+void
+libspectrum_buffer_reallocate( libspectrum_buffer *buffer,
+                               const size_t new_size )
 {
   buffer->buffer = libspectrum_realloc( buffer->buffer, new_size );
   buffer->buffer_size = new_size;
@@ -56,7 +57,7 @@ libspectrum_buffer_alloc( void )
   buffer->buffer_size = 0;
   buffer->bytes_used = 0;
 
-  reallocate( buffer, 65536 );
+  libspectrum_buffer_reallocate( buffer, 65536 );
 
   return buffer;
 }
@@ -118,7 +119,7 @@ static void
 reallocate_to_new_size( libspectrum_buffer *buffer, const size_t size )
 {
   while ( size > buffer->buffer_size - buffer->bytes_used ) {
-    reallocate( buffer, 2 * buffer->buffer_size );
+    libspectrum_buffer_reallocate( buffer, 2 * buffer->buffer_size );
   }
 }
 

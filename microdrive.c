@@ -286,14 +286,10 @@ libspectrum_microdrive_mdr_read( libspectrum_microdrive *microdrive,
 
 void
 libspectrum_microdrive_mdr_write( const libspectrum_microdrive *microdrive,
-				  libspectrum_byte **buffer, size_t *length )
+				  libspectrum_buffer *buffer )
 {
-  *length = microdrive->cartridge_len * LIBSPECTRUM_MICRODRIVE_BLOCK_LEN;
-  *buffer = libspectrum_new( libspectrum_byte, *length + 1 );
+  libspectrum_buffer_write( buffer, microdrive->data,
+                microdrive->cartridge_len * LIBSPECTRUM_MICRODRIVE_BLOCK_LEN );
 
-  memcpy( *buffer, microdrive->data, *length );
-
-  (*buffer)[ *length ] = microdrive->write_protect;
-
-  (*length)++;
+  libspectrum_buffer_write_byte( buffer, microdrive->write_protect );
 }

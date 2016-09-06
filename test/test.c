@@ -432,6 +432,7 @@ static test_return_t
 test_23( void )
 {
   libspectrum_byte *buffer = NULL;
+  libspectrum_buffer *mdr_buffer;
   size_t filesize = 0, length;
   libspectrum_microdrive *mdr;
   const char *filename = STATIC_TEST_PATH( "writeprotected.mdr" );
@@ -452,15 +453,19 @@ test_23( void )
     return TEST_INCOMPLETE;
   }
 
-  libspectrum_free( buffer ); buffer = NULL;
+  libspectrum_free( buffer );
+  mdr_buffer = libspectrum_buffer_alloc();
 
-  libspectrum_microdrive_mdr_write( mdr, &buffer, &length );
+  libspectrum_microdrive_mdr_write( mdr, mdr_buffer );
 
   libspectrum_microdrive_free( mdr );
 
-  r = ( length == filesize && buffer[ length - 1 ] == 1 ) ? TEST_PASS : TEST_FAIL;
+  length = libspectrum_buffer_get_data_size( mdr_buffer );
+  r = ( length == filesize &&
+        libspectrum_buffer_get_data( mdr_buffer )[ length - 1 ] == 1 ) ?
+    TEST_PASS : TEST_FAIL;
 
-  libspectrum_free( buffer );
+  libspectrum_buffer_free( mdr_buffer );
 
   return r;
 }
