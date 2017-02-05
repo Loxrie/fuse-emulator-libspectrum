@@ -1032,6 +1032,284 @@ libspectrum_ide_write( libspectrum_ide_channel *chn,
 		       libspectrum_ide_register reg,
 		       libspectrum_byte data );
 
+/*
+ * Floppy disk handling routines
+ */
+
+typedef enum libspectrum_disk_flag_t {
+  LIBSPECTRUM_DISK_FLAG_NONE = 0x00,
+  LIBSPECTRUM_DISK_FLAG_PLUS3_CPC = 0x01,	/* try to fix some CPC issue */
+  LIBSPECTRUM_DISK_FLAG_OPEN_DS = 0x02,		/* try to open the other side too */
+  LIBSPECTRUM_DISK_FLAG_PREIDX = 0x04,		/* generate preindex GAP for some format */
+  LIBSPECTRUM_DISK_FLAG_SAVE_UNCOMPR = 0x08,	/* save image as uncompressed (UDI) */
+} libspectrum_disk_flag_t;
+
+typedef enum libspectrum_disk_error_t {
+  LIBSPECTRUM_DISK_OK = 0,
+  LIBSPECTRUM_DISK_IMPL,
+  LIBSPECTRUM_DISK_MEM,
+  LIBSPECTRUM_DISK_GEOM,
+  LIBSPECTRUM_DISK_OPEN,
+  LIBSPECTRUM_DISK_UNSUP,
+  LIBSPECTRUM_DISK_RDONLY,
+  LIBSPECTRUM_DISK_CLOSE,
+  LIBSPECTRUM_DISK_WRFILE,
+  LIBSPECTRUM_DISK_WRPART,
+  LIBSPECTRUM_DISK_UNKNOWN,
+  LIBSPECTRUM_DISK_SNFOUND,
+
+  LIBSPECTRUM_DISK_LAST_ERROR,
+} libspectrum_disk_error_t;
+
+typedef enum libspectrum_disk_type_t {
+  LIBSPECTRUM_DISK_TYPE_NONE = 0,
+  LIBSPECTRUM_DISK_UDI,		/* raw track disk image (our format :-) */
+  LIBSPECTRUM_DISK_FDI,		/* Full Disk Image ALT */
+  LIBSPECTRUM_DISK_TD0,		/* Teledisk image format */
+
+  /* DISCiPLE / +D / SAM Coupe */
+  LIBSPECTRUM_DISK_MGT,		/* ALT */
+  LIBSPECTRUM_DISK_IMG,		/* OUT-OUT */
+  LIBSPECTRUM_DISK_SAD,		/* OUT-OUT with geometry header */
+
+  LIBSPECTRUM_DISK_CPC,
+  LIBSPECTRUM_DISK_ECPC,
+
+  /* Beta disk interface (TR-DOS) */
+  LIBSPECTRUM_DISK_TRD,
+  LIBSPECTRUM_DISK_SCL,
+
+  /* Opus Discovery */
+  LIBSPECTRUM_DISK_OPD,
+
+  /* Didaktik 40/80 */
+  LIBSPECTRUM_DISK_D40,
+  LIBSPECTRUM_DISK_D80,
+
+  /* Log disk structure (.log) place me before ..._LAST! */
+  LIBSPECTRUM_DISK_LOG,
+
+  LIBSPECTRUM_DISK_TYPE_LAST,
+} libspectrum_disk_type_t;
+
+typedef struct libspectrum_disk_desc_t {
+  const char *name;		/* short name e.g.: UDI */
+  const char *description;	/* description e.g.: Ultra Disk Image format */
+  const char *url;		/* URL for further specification */
+  const int ro;		/* if 1 -> read only: cannot write */
+} libspectrum_disk_desc_t;
+
+typedef enum libspectrum_disk_dens_t {
+  LIBSPECTRUM_DISK_DENS_AUTO = 0,
+  LIBSPECTRUM_DISK_8_SD,	/* 8" SD floppy 5208 MF */
+  LIBSPECTRUM_DISK_8_DD,	/* 8" DD floppy 10416 */
+  LIBSPECTRUM_DISK_SD,		/* 3125 bpt MF */
+  LIBSPECTRUM_DISK_DD,		/* 6250 bpt */
+  LIBSPECTRUM_DISK_DD_PLUS,	/* 6500 bpt e.g. Coin Op Hits */
+  LIBSPECTRUM_DISK_HD,		/* 12500 bpt */
+} libspectrum_disk_dens_t;
+
+typedef enum libspectrum_disk_prop_t {
+  LIBSPECTRUM_DISK_ID_NOTMATCH = 1,		/* real and id tracknum not match */
+  LIBSPECTRUM_DISK_SECLEN_VARI = 2,		/* not uniform sector length */
+  LIBSPECTRUM_DISK_SPT_VARI = 4,		/* not uniform sector/track */
+  LIBSPECTRUM_DISK_SBASE_VARI = 8,		/* not uniform sector starting num */
+  LIBSPECTRUM_DISK_MFM_VARI = 16,		/* mixed FM/MFM data */
+  LIBSPECTRUM_DISK_DDAM = 32,			/* has deleted sector data */
+  LIBSPECTRUM_DISK_CORRUPT_SECTOR = 64,		/* has sector with CRC error */
+  LIBSPECTRUM_DISK_UNFORMATTED_TRACK = 128,	/* has unformatted track */
+  LIBSPECTRUM_DISK_FM_DATA = 256,		/* FM data */
+  LIBSPECTRUM_DISK_WEAK_DATA = 512,		/* has `weak' data */
+
+} libspectrum_disk_prop_t;
+
+typedef struct libspectrum_disk_t {
+  char *filename;	/* original filename */
+  int sides;		/* 1 or 2 */
+  int cylinders;	/* tracks per side */
+  int bpt;		/* bytes per track */
+  int wrprot;		/* disk write protect */
+  int dirty;		/* disk changed */
+  int have_weak;	/* disk contain weak sectors */
+  unsigned int flag;
+  libspectrum_disk_error_t status;	/* last error code */
+  libspectrum_byte *data;	/* disk data */
+/* private part */
+  int tlen;			/* length of a track with clock and other marks (bpt + 3/8bpt) */
+  libspectrum_byte *track;	/* current track data bytes */
+  libspectrum_byte *clocks;	/* clock marks bits */
+  libspectrum_byte *fm;		/* FM/MFM marks bits */
+  libspectrum_byte *weak;	/* weak marks bits/weak data */
+  int i;			/* index for track and clocks */
+  libspectrum_disk_type_t type;		/* DISK_UDI, ... */
+  libspectrum_disk_dens_t density;	/* DISK_SD DISK_DD, or DISK_HD */
+} libspectrum_disk_t;
+
+/* set disk_t pointers to the desired track */
+WIN32_DLL void
+libspectrum_disk_set_track( libspectrum_disk_t *d, int head, int cyl );
+
+WIN32_DLL const char *
+libspectrum_disk_strerror( int error );
+
+/* create an unformatted disk sides -> (1/2) cylinders -> track/side,
+   dens -> 'density' related to unformatted length of a track (SD = 3125,
+   DD = 6250, HD = 12500, type -> if write this disk we want to convert
+   into this type of image file
+*/
+WIN32_DLL int
+libspectrum_disk_new( libspectrum_disk_t *d, int sides, int cylinders,
+                      libspectrum_disk_dens_t dens,
+                      libspectrum_disk_type_t type );
+
+/* open a disk image file. if preindex = 1 and the image file not UDI then
+   pre-index gap generated with index mark (0xfc)
+   this time only .mgt(.dsk)/.img/.udi and CPC/extended CPC file format
+   supported
+*/
+WIN32_DLL libspectrum_disk_error_t
+libspectrum_disk_open( libspectrum_disk_t *disk, libspectrum_byte *buffer,
+                       size_t length );
+
+/* merge two one sided disk (d1, d2) to a two sided one (d),
+   after merge closes d1 and d2
+*/
+WIN32_DLL int
+libspectrum_disk_merge_sides( libspectrum_disk_t *d, libspectrum_disk_t *d1,
+                              libspectrum_disk_t *d2, int autofill );
+
+/* write a disk image file (from the disk buffer). the d->type
+   gives the format of file. if it DISK_TYPE_AUTO, disk_write
+   try to guess from the file name (extension). if fail save as
+   UDI.
+*/
+WIN32_DLL int
+libspectrum_disk_write( const libspectrum_disk_t *d, libspectrum_byte **buffer,
+                        size_t *length, const char *filename );
+
+/* format disk to plus3 accept for formatting */
+WIN32_DLL int
+libspectrum_disk_preformat( libspectrum_disk_t *d );
+
+/* close a disk and free buffers */
+WIN32_DLL void
+libspectrum_disk_close( libspectrum_disk_t *d );
+
+/* Calculate CRC for FDCs */
+WIN32_DLL libspectrum_word
+libspectrum_disk_crc( libspectrum_word crc, libspectrum_byte data );
+
+/*  read next datamark from track (d->track, d->i)
+    set deleted = 1 if data is deleted
+    if fmf != NULL *fmf = 1 if datamark is FMF (3x 0xa1 bytes)
+*/
+WIN32_DLL int
+libspectrum_disk_datamark_read( libspectrum_disk_t *d, int *deleted, int *fmf );
+
+/*  read next id from track (d->track, d->i)
+    return with header data:
+      head, track, sector, length (length code)
+*/
+WIN32_DLL int
+libspectrum_disk_id_read( libspectrum_disk_t *d, int *head, int *track,
+                          int *sector, int *length );
+
+/*  seek to `sector' sector in current track
+    if len != NULL, return with sector length
+    *code*: `len'
+    d->i pont after the 2 CRC byte (the first GAP byte)
+*/
+WIN32_DLL int
+libspectrum_disk_id_seek( libspectrum_disk_t *d, int sector, int *len );
+
+/*  Seek to a head, cyl, sector position
+    if len != NULL, return with sector length
+    *code*: `len'  and data mark properies:
+    `deleted', `mfm' data
+    d->i point to the first data byte in sector
+*/
+WIN32_DLL int
+libspectrum_disk_seek( libspectrum_disk_t *d, int head, int cyl, int sector,
+                       int *len, int *del, int *fmf );
+
+/*  Read `snum' sector's data from head, cyl,
+    sector into a buffer. if *del != 0 then read
+    deleted sector data too, else skip deleted sectors.
+    return with buffer pointer, or NULL if data not found,
+      buffer length, readed/skipped sector num in *snum (overwrite),
+      skipped/readed deleted sector num in *del (overwrite),
+      if prop != NULL than track properties in `prop' and
+        if sprop != NULL sector_base & 256*(num sectors) in `sprop'
+    buffer must be freed if not NULL
+    Note: *snum and *del is input and output parameter, so
+          the given values are overwritten!
+*/
+
+WIN32_DLL int
+libspectrum_disk_read_sectors( libspectrum_disk_t *d,
+                               int head, int cyl, int sector,
+                               int *snum, int *del, libspectrum_byte **buffer,
+                               size_t *length, int *prop, int *sprop );
+
+/* add/overwrite data (sector data) at current pos / after next datamark
+  d    -> disk (track)
+  data -> data bytes
+  len  -> length of data (sector len)
+  ddam -> deleted (1) or normal (0) data if gaptype == -1 and ddam & 0x80 == 1
+          then write dam as well (0x80 -> change dam to normal, 0x81 or other ->
+          change dam to deleted), if not seek the first normal and/or deleted data,
+          except if ddam = -1, when the first found data overwriten
+  gaptype -> if -1 do not add gap and data mark, just seek to next data mark and
+             overwrite data, else write `gaptype' gap, datamark end "after gap"
+  crc_error -> if !0 write messed up CRC
+  start_data -> if !NULL the index of data pos (d->i)
+*/
+WIN32_DLL int
+libspectrum_disk_data_add( libspectrum_disk_t *d, unsigned char *data, int len,
+                           int ddam, int gaptype, int crc_error,
+                           int *start_data );
+
+/* scan track and return variouse information about
+  sector_base = lowest sector num (usually 1) -1 -> unknown (no sector data)
+  sectors = number of sectors -1 -> unknown (no sector data)
+  seclen = longest sector length  -1 -> unknown (no sector data)
+  mfm = 0 -> fm, 1 -> mfm, 2 -> mixed, -1 -> unknown
+
+  the return int is a flag ORed from:
+    LIBSPECTRUM_DISK_CORRUPT_SECTOR -> there is sector head without correct data
+    LIBSPECTRUM_DISK_MFM_VARI -> mixed FM/MFM sector data
+    LIBSPECTRUM_DISK_ID_NOTMATCH -> ID(track num) not match real track num
+    LIBSPECTRUM_DISK_SECLEN_VARI -> not equal length sectors
+    LIBSPECTRUM_DISK_DDAM -> there is deleted sectors (DDAM)
+*/
+int
+libspectrum_guess_track_geom( libspectrum_disk_t *d, int head, int track,
+                              int *sector_base, int *sectors, int *seclen,
+                              int *mfm, int *interl );
+
+/* get information (name, description, URL, ro) about supported disk format */
+WIN32_DLL libspectrum_disk_desc_t *
+libspectrum_disk_type_description( libspectrum_disk_type_t dt );
+
+/* Various bitmap related functions */
+static inline void
+libspectrum_bitmap_set( libspectrum_byte *b, const size_t n )
+{
+  b[ n / 8 ] |= ( 1 << ( n % 8 ) );
+}
+
+static inline void
+libspectrum_bitmap_reset( libspectrum_byte *b, const size_t n )
+{
+  b[ n / 8 ] &= ~( 1 << ( n % 8 ) );
+}
+
+static inline int
+libspectrum_bitmap_test( const libspectrum_byte *b, const size_t n )
+{
+  return b[ n / 8 ] & ( 1 << ( n % 8 ) );
+}
+
 #ifdef __cplusplus
 };
 #endif				/* #ifdef __cplusplus */
