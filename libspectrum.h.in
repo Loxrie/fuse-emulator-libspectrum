@@ -1282,7 +1282,7 @@ libspectrum_disk_data_add( libspectrum_disk_t *d, unsigned char *data, int len,
     LIBSPECTRUM_DISK_SECLEN_VARI -> not equal length sectors
     LIBSPECTRUM_DISK_DDAM -> there is deleted sectors (DDAM)
 */
-int
+WIN32_DLL int
 libspectrum_guess_track_geom( libspectrum_disk_t *d, int head, int track,
                               int *sector_base, int *sectors, int *seclen,
                               int *mfm, int *interl );

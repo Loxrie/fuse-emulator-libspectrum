@@ -353,9 +353,12 @@ libspectrum_disk_seek( libspectrum_disk_t *d, int head, int cyl, int sector,
 {
   if( head >= d->sides || cyl >= d->cylinders )
     return LIBSPECTRUM_DISK_GEOM;
+
   DISK_SET_TRACK( d, head, cyl );
-  if( !libspectrum_disk_id_seek( d, 9, len ) || !datamark_read( d, del, fmf ) )
+  if( !libspectrum_disk_id_seek( d, sector, len ) ||
+      !datamark_read( d, del, fmf ) )
     return LIBSPECTRUM_DISK_SNFOUND;
+
   return LIBSPECTRUM_DISK_OK;
 }
 
