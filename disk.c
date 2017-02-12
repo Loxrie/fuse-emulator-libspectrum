@@ -1030,7 +1030,7 @@ trackgen( libspectrum_disk_t *d, buffer_t *buffer, int head, int track,
 
 /* close and destroy a disk structure and data */
 void
-disk_close( libspectrum_disk_t *d )
+libspectrum_disk_close( libspectrum_disk_t *d )
 {
   if( d->data != NULL ) {
     libspectrum_free( d->data );
@@ -1137,7 +1137,7 @@ alloc_uncompress_buffer( unsigned char **buffer, int length )
 }
 
 int
-disk_preformat( libspectrum_disk_t *d )
+libspectrum_disk_preformat( libspectrum_disk_t *d )
 {
   buffer_t buffer;
 
@@ -2453,8 +2453,8 @@ libspectrum_disk_merge_sides( libspectrum_disk_t *d, libspectrum_disk_t *d1,
     d->track += d->tlen;
     d2->track += d2->tlen;
   }
-  disk_close( d1 );
-  disk_close( d2 );
+  libspectrum_disk_close( d1 );
+  libspectrum_disk_close( d2 );
   return d->status = LIBSPECTRUM_DISK_OK;
 }
 
