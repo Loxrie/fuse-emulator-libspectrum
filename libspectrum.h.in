@@ -1040,8 +1040,9 @@ typedef enum libspectrum_disk_flag_t {
   LIBSPECTRUM_DISK_FLAG_NONE = 0x00,
   LIBSPECTRUM_DISK_FLAG_PLUS3_CPC = 0x01,	/* try to fix some CPC issue */
   LIBSPECTRUM_DISK_FLAG_OPEN_DS = 0x02,		/* try to open the other side too */
-  LIBSPECTRUM_DISK_FLAG_PREIDX = 0x04,		/* generate preindex GAP for some format */
-  LIBSPECTRUM_DISK_FLAG_SAVE_UNCOMPR = 0x08,	/* save image as uncompressed (UDI) */
+  LIBSPECTRUM_DISK_FLAG_PREIDX = 0x04,		/* generate preindex GAP for some format  */
+  LIBSPECTRUM_DISK_FLAG_SAVE_UNCOMPR = 0x08,	/* save image as uncompressed (UDI)  */
+  LIBSPECTRUM_DISK_FLAG_NOADD_MISSING = 0x10,	/* not add missing tracks */
 } libspectrum_disk_flag_t;
 
 typedef enum libspectrum_disk_error_t {
@@ -1123,6 +1124,18 @@ typedef enum libspectrum_disk_prop_t {
 
 } libspectrum_disk_prop_t;
 
+typedef enum libspectrum_disk_open_flag_t {
+  LIBSPECTRUM_DISK_OFLAG_NONE   = 0x00,
+  LIBSPECTRUM_DISK_OFLAG_CPC_1  = 0x01,
+  LIBSPECTRUM_DISK_OFLAG_CPC_2  = 0x02,
+  LIBSPECTRUM_DISK_OFLAG_CPC_3  = 0x04,
+  LIBSPECTRUM_DISK_OFLAG_CPC_4  = 0x08,
+  LIBSPECTRUM_DISK_OFLAG_CPC_5  = 0x10,
+  LIBSPECTRUM_DISK_OFLAG_CPC_3a = 0x20,
+  LIBSPECTRUM_DISK_OFLAG_CPC_MASK = 0x3f
+
+} libspectrum_disk_open_flag_t;
+
 typedef struct libspectrum_disk_t {
   char *filename;	/* original filename */
   int sides;		/* 1 or 2 */
@@ -1131,7 +1144,8 @@ typedef struct libspectrum_disk_t {
   int wrprot;		/* disk write protect */
   int dirty;		/* disk changed */
   int have_weak;	/* disk contain weak sectors */
-  unsigned int flag;
+  unsigned int flag;	/* libspectrum_disk_flag_t */
+  unsigned int open_flag;	/* (now) open_cpc set some flag */
   libspectrum_disk_error_t status;	/* last error code */
   libspectrum_byte *data;	/* disk data */
 /* private part */

@@ -168,7 +168,8 @@ typedef struct buffer_t {		/* to store buffer data */
   size_t idx;
 } buffer_t;
 
-#define buffavail(buffer) ( buffer->len - buffer->idx )
+#define buffavail( buffer ) \
+  ( buffer->idx < buffer->len ? buffer->len - buffer->idx : 0 )
 /* data buffer */
 #define buff ( buffer->data + buffer->idx )
 
@@ -1768,20 +1769,13 @@ cpc_set_weak_range( libspectrum_disk_t *d, int idx, buffer_t *buffer, int n,
   }
 }
 
-#define CPC_ISSUE_NONE 0
-#define CPC_ISSUE_1 1
-#define CPC_ISSUE_2 2
-#define CPC_ISSUE_3 3
-#define CPC_ISSUE_4 4
-#define CPC_ISSUE_5 5
-
 /* preindex
  *
  */
 static int
 open_cpc( buffer_t *buffer, libspectrum_disk_t *d )
 {
-  int i, j, seclen, idlen, gap, preindex, sector_pad, idx;
+  int i, j, seclen, idlen, gap, preindex, idx;
   int bpt, max_bpt = 0, trlen;
   int fix[84], plus3_fix;
   unsigned char *hdrb;
@@ -1790,8 +1784,14 @@ open_cpc( buffer_t *buffer, libspectrum_disk_t *d )
   d->sides = buff[0x31];
   d->cylinders = buff[0x30];			/* maximum number of tracks */
   GEOM_CHECK;
-  buffer->idx = 256;
 /* first scan for the longest track */
+  if( *buffer->data == 'M' ) {
+    /* All track sizes in the standard disk image must be the same */
+    trlen = buff[0x32] + 256 * buff[0x33];
+  } else {
+    trlen = -1;
+  }
+  buffer->idx = 256;
   for( i = 0; i < d->sides*d->cylinders; i++ ) {
     /* ignore Sector Offset block */
     if( buffavail( buffer ) >= 13 && !memcmp( buff, "Offset-Info\r\n", 13 ) ) {
@@ -1800,7 +1800,8 @@ open_cpc( buffer_t *buffer, libspectrum_disk_t *d )
 
       /* sometimes in the header there are more track than in the file */
     if( buffavail( buffer ) == 0 ) {			/* no more data */
-      d->cylinders = i / d->sides + i % d->sides;	/* the real cylinder number */
+      if( d->flag & LIBSPECTRUM_DISK_FLAG_NOADD_MISSING )
+        d->cylinders = i / d->sides + i % d->sides;	/* the real cylinder number */
       break;
     }
     if( buffavail( buffer ) < 256 ||
@@ -1808,19 +1809,22 @@ open_cpc( buffer_t *buffer, libspectrum_disk_t *d )
       return d->status = LIBSPECTRUM_DISK_OPEN;
 
     gap = (unsigned char)buff[0x16] == 0xff ? GAP_MINIMAL_FM : GAP_MINIMAL_MFM;
-    plus3_fix = trlen = 0;
+    plus3_fix = 0;
     while( i < buff[0x10] * d->sides + buff[0x11] ) {
       if( i < 84 ) fix[i] = 0;
       i++;
     }
-    if( i >= d->sides*d->cylinders ||
-        i != buff[0x10] * d->sides + buff[0x11] )	/* problem with track idx. */
+    if( i >= d->sides*d->cylinders )
       return d->status = LIBSPECTRUM_DISK_OPEN;
+
+    if( i != buff[0x10] * d->sides + buff[0x11] )	/* problem with track idx */
+      fprintf( stderr, "Track/head info mismatch! (exp:%d got:%d /max:%d/)\n",
+               i, buff[0x10] * d->sides, d->sides*d->cylinders );
 
     bpt = postindex_len( d, gap ) +
           ( preindex ? preindex_len( d, gap ) : 0 ) +
           ( gap == GAP_MINIMAL_MFM ? 6 : 3 );	/* gap4 */
-    sector_pad = 0;
+
     for( j = 0; j < buff[0x15]; j++ ) {			/* each sector */
       seclen = d->type == LIBSPECTRUM_DISK_ECPC ? buff[ 0x1e + 8 * j ] +
                                                   256 * buff[ 0x1f + 8 * j ]
@@ -1834,45 +1838,54 @@ open_cpc( buffer_t *buffer, libspectrum_disk_t *d )
                              seclen > idlen ? idlen : seclen, gap );
       if( i < 84 && d->flag & LIBSPECTRUM_DISK_FLAG_PLUS3_CPC ) {
         if( j == 0 && buff[ 0x1b + 8 * j ] == 6 && seclen > 6144 )
-          plus3_fix = CPC_ISSUE_4;
+          plus3_fix = LIBSPECTRUM_DISK_OFLAG_CPC_4;
         else if( j == 0 && buff[ 0x1b + 8 * j ] == 6 )
-          plus3_fix = CPC_ISSUE_1;
+          plus3_fix = LIBSPECTRUM_DISK_OFLAG_CPC_1;
         else if( j == 0 &&
                  buff[ 0x18 + 8 * j ] == j && buff[ 0x19 + 8 * j ] == j &&
                  buff[ 0x1a + 8 * j ] == j && buff[ 0x1b + 8 * j ] == j )
-          plus3_fix = CPC_ISSUE_3;
-        else if( j == 1 && plus3_fix == CPC_ISSUE_1 &&
+          plus3_fix = LIBSPECTRUM_DISK_OFLAG_CPC_3;
+        else if( j == 0 &&
+                 buff[ 0x18 + 8 * j ] == 1 && buff[ 0x19 + 8 * j ] == 1 &&
+                 buff[ 0x1a + 8 * j ] == 1 && buff[ 0x1b + 8 * j ] == 1 )
+          plus3_fix = LIBSPECTRUM_DISK_OFLAG_CPC_3a;
+        else if( j == 1 && plus3_fix == LIBSPECTRUM_DISK_OFLAG_CPC_1 &&
                  buff[ 0x1b + 8 * j ] == 2 )
-          plus3_fix = CPC_ISSUE_2;
+          plus3_fix = LIBSPECTRUM_DISK_OFLAG_CPC_2;
         else if( i == 38 && j == 0 && buff[ 0x1b + 8 * j ] == 2 )
-          plus3_fix = CPC_ISSUE_5;
-        else if( j > 1 && plus3_fix == CPC_ISSUE_2 && buff[ 0x1b + 8 * j ] != 2 )
-          plus3_fix = CPC_ISSUE_NONE;
-        else if( j > 0 && plus3_fix == CPC_ISSUE_3 &&
+          plus3_fix = LIBSPECTRUM_DISK_OFLAG_CPC_5;
+        else if( j > 1 && plus3_fix == LIBSPECTRUM_DISK_OFLAG_CPC_2 &&
+                 buff[ 0x1b + 8 * j ] != 2 )
+          plus3_fix = LIBSPECTRUM_DISK_OFLAG_NONE;
+        else if( j > 0 && plus3_fix == LIBSPECTRUM_DISK_OFLAG_CPC_3 &&
                  ( buff[ 0x18 + 8 * j ] != j || buff[ 0x19 + 8 * j ] != j ||
                    buff[ 0x1a + 8 * j ] != j || buff[ 0x1b + 8 * j ] != j ) )
-          plus3_fix = CPC_ISSUE_NONE;
-        else if( j > 10 && plus3_fix == CPC_ISSUE_2 )
-          plus3_fix = CPC_ISSUE_NONE;
-        else if( i == 38 && j > 0 && plus3_fix == CPC_ISSUE_5 &&
+          plus3_fix = LIBSPECTRUM_DISK_OFLAG_NONE;
+        else if( j > 0 && plus3_fix == LIBSPECTRUM_DISK_OFLAG_CPC_3a &&
+                 ( buff[ 0x18 + 8 * j ] != j + 1 || buff[ 0x19 + 8 * j ] != j + 1 ||
+                   buff[ 0x1a + 8 * j ] != j + 1 || buff[ 0x1b + 8 * j ] != j + 1 ) )
+          plus3_fix = LIBSPECTRUM_DISK_OFLAG_NONE;
+        else if( j > 10 && plus3_fix == LIBSPECTRUM_DISK_OFLAG_CPC_2 )
+          plus3_fix = LIBSPECTRUM_DISK_OFLAG_NONE;
+        else if( i == 38 && j > 0 && plus3_fix == LIBSPECTRUM_DISK_OFLAG_CPC_5 &&
                  buff[ 0x1b + 8 * j ] != 2 - ( j & 1 ) )
-          plus3_fix = CPC_ISSUE_NONE;
+          plus3_fix = LIBSPECTRUM_DISK_OFLAG_NONE;
       }
-      trlen += seclen;
-      if( seclen % 0x100 )		/* every? 128/384/...byte length sector padded */
-        sector_pad++;
     }
     if( i < 84 ) {
       fix[i] = plus3_fix;
-      if( fix[i] == CPC_ISSUE_4 )         bpt = 6500;/* Type 1 variant DD+ (e.g. Coin Op Hits) */
-      else if( fix[i] != CPC_ISSUE_NONE ) bpt = 6250;/* we assume a standard DD track */
+      d->open_flag |= plus3_fix;
+      if( fix[i] == LIBSPECTRUM_DISK_OFLAG_CPC_4 )
+        bpt = 6500; /* Type 1 variant DD+ (e.g. Coin Op Hits) */
+      else if( fix[i] != LIBSPECTRUM_DISK_OFLAG_NONE )
+        bpt = 6250; /* we assume a standard DD track */
     }
-    buffer->idx += trlen + sector_pad * 128 + 256;
+/* extended DSK image uses track size table */
+    buffer->idx += ( trlen < 0 ? 256 * buffer->data[0x34 + i] : trlen );
     if( bpt > max_bpt )
       max_bpt = bpt;
   }
-  if( max_bpt == 0 )
-    return d->status = LIBSPECTRUM_DISK_GEOM;
+  if( max_bpt == 0 ) max_bpt = 6250;
 
   d->density = LIBSPECTRUM_DISK_DENS_AUTO;			/* disk_alloc use d->bpt */
   d->bpt = max_bpt;
@@ -1882,18 +1895,25 @@ open_cpc( buffer_t *buffer, libspectrum_disk_t *d )
   DISK_SET_TRACK_IDX( d, 0 );
   buffer->idx = 256;				/* rewind to first track */
   for( i = 0; i < d->sides*d->cylinders; i++ ) {
+    int ii;					/* track number from Track Info */
+    int idx_save;
+
     hdrb = buff;
+    idx_save = buffer->idx;
     buffer->idx += 256;		/* skip to data */
+
+    if( buffavail( buffer ) < 256 ) break;	/* End of image */
+
     gap = (unsigned char)hdrb[0x16] == 0xff ? GAP_MINIMAL_FM : GAP_MINIMAL_MFM;
 
-    i = hdrb[0x10] * d->sides + hdrb[0x11];		/* adjust track No. */
+    ii = hdrb[0x10] * d->sides + hdrb[0x11];		/* adjust track No. */
+    if( ii > i ) i = ii;
     DISK_SET_TRACK_IDX( d, i );
     d->i = 0;
     if( preindex)
       preindex_add( d, gap );
     postindex_add( d, gap );
 
-    sector_pad = 0;
     for( j = 0; j < hdrb[0x15]; j++ ) {			/* each sector */
       seclen = d->type == LIBSPECTRUM_DISK_ECPC ? hdrb[ 0x1e + 8 * j ] +	/* data length in sector */
                               256 * hdrb[ 0x1f + 8 * j ]
@@ -1911,28 +1931,29 @@ open_cpc( buffer_t *buffer, libspectrum_disk_t *d )
               hdrb[ 0x1c + 8 * j ] & 0x20 && !( hdrb[ 0x1d + 8 * j ] & 0x20 ) ?
               CRC_ERROR : CRC_OK );
 
-      if( i < 84 && fix[i] == CPC_ISSUE_1 && j == 0 ) {	/* 6144 */
+      if( i < 84 && fix[i] == LIBSPECTRUM_DISK_OFLAG_CPC_1 && j == 0 ) {	/* 6144 */
         data_add( d, buffer, NULL, seclen,
                   hdrb[ 0x1d + 8 * j ] & 0x40 ? DDAM : NO_DDAM, gap,
                   hdrb[ 0x1c + 8 * j ] & 0x20 && hdrb[ 0x1d + 8 * j ] & 0x20 ?
                   CRC_ERROR : CRC_OK, 0x00, NULL );
-      } else if( i < 84 && fix[i] == CPC_ISSUE_2 && j == 0 ) {	/* 6144, 10x512 */
+      } else if( i < 84 && fix[i] == LIBSPECTRUM_DISK_OFLAG_CPC_2 && j == 0 ) {	/* 6144, 10x512 */
         datamark_add( d, hdrb[ 0x1d + 8 * j ] & 0x40 ? DDAM : NO_DDAM, gap );
         gap_add( d, 2, gap );
         buffer->idx += seclen;
-      } else if( i < 84 && fix[i] == CPC_ISSUE_3 ) {	/* 128, 256, 512, ... 4096k */
+      } else if( i < 84 && ( fix[i] == LIBSPECTRUM_DISK_OFLAG_CPC_3 ||
+                             fix[i] == LIBSPECTRUM_DISK_OFLAG_CPC_3a ) ) {	/* 128, 256, 512, ... 4096k */
         data_add( d, buffer, NULL, 128,
                   hdrb[ 0x1d + 8 * j ] & 0x40 ? DDAM : NO_DDAM, gap,
                   hdrb[ 0x1c + 8 * j ] & 0x20 && hdrb[ 0x1d + 8 * j ] & 0x20 ?
                   CRC_ERROR : CRC_OK, 0x00, NULL );
         buffer->idx += seclen - 128;
-      } else if( i < 84 && fix[i] == CPC_ISSUE_4 ) {	/* Nx8192 (max 6384 byte ) */
+      } else if( i < 84 && fix[i] == LIBSPECTRUM_DISK_OFLAG_CPC_4 ) {	/* Nx8192 (max 6384 byte ) */
         data_add( d, buffer, NULL, 6384,
                   hdrb[ 0x1d + 8 * j ] & 0x40 ? DDAM : NO_DDAM, gap,
                   hdrb[ 0x1c + 8 * j ] & 0x20 && hdrb[ 0x1d + 8 * j ] & 0x20 ?
                   CRC_ERROR : CRC_OK, 0x00, NULL );
         buffer->idx += seclen - 6384;
-      } else if( i < 84 && fix[i] == CPC_ISSUE_5 ) {	/* 9x512 */
+      } else if( i < 84 && fix[i] == LIBSPECTRUM_DISK_OFLAG_CPC_5 ) {	/* 9x512 */
       /* 512 256 512 256 512 256 512 256 512 */
         if( idlen == 256 ) {
           data_add( d, NULL, buff, 512,
@@ -1957,11 +1978,10 @@ open_cpc( buffer_t *buffer, libspectrum_disk_t *d )
                                         /* ( ( N * len ) / len - 1 ) * len */
         }
       }
-      if( seclen % 0x100 )		/* every? 128/384/...byte length sector padded */
-        sector_pad++;
     }
     gap4_add( d, gap );
-    buffer->idx += sector_pad * 0x80;
+/* extended DSK image uses track size table */
+    buffer->idx = idx_save + ( trlen < 0 ? 256 * buffer->data[0x34 + i] : trlen );
   }
   return d->status = LIBSPECTRUM_DISK_OK;
 }
@@ -2347,6 +2367,8 @@ libspectrum_disk_open( libspectrum_disk_t *d, libspectrum_byte *buffer,
       return d->status = LIBSPECTRUM_DISK_UNKNOWN;
     }
   }
+
+  d->open_flag = 0; /* reset open flags */
 
   switch( d->type ) {
   case LIBSPECTRUM_DISK_UDI:
@@ -2968,6 +2990,7 @@ write_log( buffer_t *b, libspectrum_disk_t *d )
       rev = k = 0;
       while( id_read( d, &h, &t, &s, &l ) ) {
         l = 0x80 << l;
+        if( l > 16384 ) l = 16384; /* max HD track len is 12650 byte */
         if( datamark_read( d, &del, &fmf ) ) {
           buffprintf( b, "  h:%d t:%d s:%d l:%d (%s/%sFM)\n", h, t, s, l,
                    del ? "deleted" : "normal", fmf ? "M" : "" );
