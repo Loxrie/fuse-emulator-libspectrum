@@ -185,7 +185,7 @@ libspectrum_disk_set_track( libspectrum_disk_t *d, int head, int cyl )
 }
 
 const char *
-libspectrum_disk_strerror( int error )
+libspectrum_disk_strerror( libspectrum_disk_error_t error )
 {
   if( error < 0 || error > LIBSPECTRUM_DISK_LAST_ERROR )
     error = LIBSPECTRUM_DISK_LAST_ERROR;
@@ -348,7 +348,7 @@ libspectrum_disk_id_seek( libspectrum_disk_t *d, int sector, int *len )
     data mark properies: `deleted', `mfm' data
     d->i point to the first data byte in sector
 */
-int
+libspectrum_disk_error_t
 libspectrum_disk_seek( libspectrum_disk_t *d, int head, int cyl, int sector,
                        int *len, int *del, int *fmf )
 {
@@ -393,7 +393,7 @@ read_sector_data( libspectrum_disk_t *d, libspectrum_byte *buffer, int len )
     Note: *snum and *del is input and output parameter, so
           the given values are overwritten!
 */
-int
+libspectrum_disk_error_t
 libspectrum_disk_read_sectors( libspectrum_disk_t *d, int head, int cyl,
                                int sector, int *snum, int *del,
                                libspectrum_byte **buffer, size_t *length,
@@ -1093,7 +1093,7 @@ disk_alloc( libspectrum_disk_t *d )
 }
 
 /* create a new unformatted disk  */
-int
+libspectrum_disk_error_t
 libspectrum_disk_new( libspectrum_disk_t *d, int sides, int cylinders,
                       libspectrum_disk_dens_t density,
                       libspectrum_disk_type_t type )
@@ -1137,7 +1137,7 @@ alloc_uncompress_buffer( unsigned char **buffer, int length )
   return 0;
 }
 
-int
+libspectrum_disk_error_t
 libspectrum_disk_preformat( libspectrum_disk_t *d )
 {
   buffer_t buffer;
@@ -2424,7 +2424,7 @@ libspectrum_disk_open( libspectrum_disk_t *d, libspectrum_byte *buffer,
 /*--------------------- other functions -----------------------*/
 
 /* create a two sided disk (d) from two one sided (d1 and d2) */
-int
+libspectrum_disk_error_t
 libspectrum_disk_merge_sides( libspectrum_disk_t *d, libspectrum_disk_t *d1,
                               libspectrum_disk_t *d2, int autofill )
 {
@@ -3056,7 +3056,7 @@ write_log( buffer_t *b, libspectrum_disk_t *d )
 /*
     User must free *buffer!
 */
-int
+libspectrum_disk_error_t
 libspectrum_disk_write( const libspectrum_disk_t *d1, libspectrum_byte **buffer,
                         size_t *length, const char *filename )
 {
