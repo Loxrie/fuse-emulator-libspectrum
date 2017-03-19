@@ -187,7 +187,7 @@ libspectrum_disk_set_track( libspectrum_disk_t *d, int head, int cyl )
 const char *
 libspectrum_disk_strerror( libspectrum_disk_error_t error )
 {
-  if( error < 0 || error > LIBSPECTRUM_DISK_LAST_ERROR )
+  if( error > LIBSPECTRUM_DISK_LAST_ERROR )
     error = LIBSPECTRUM_DISK_LAST_ERROR;
   return disk_error[ error ];
 }
@@ -2330,7 +2330,7 @@ libspectrum_disk_open( libspectrum_disk_t *d, libspectrum_byte *buffer,
 
   /* TODO: open_log() */
   if( ( d->type == LIBSPECTRUM_DISK_TYPE_NONE && d->filename == NULL ) ||
-        d->type < 0 || d->type >= LIBSPECTRUM_DISK_LOG )
+        d->type >= LIBSPECTRUM_DISK_LOG )
     return d->status = LIBSPECTRUM_DISK_UNKNOWN;
 
   if( d->type == LIBSPECTRUM_DISK_TYPE_NONE ) {
