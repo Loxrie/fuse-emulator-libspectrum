@@ -196,7 +196,7 @@ libspectrum_disk_strerror( libspectrum_disk_error_t error )
     automatically grow the buffer if needed
 */
 static void
-buffwrite( void *data, size_t len, buffer_t *buffer )
+buffwrite( const void *data, size_t len, buffer_t *buffer )
 {
   if( len > buffer->len - buffer->idx ) {
     buffer->data =
@@ -2756,7 +2756,7 @@ write_fdi( buffer_t *b, libspectrum_disk_t *d )
       toff += soff;
     }
   }
-  buffwrite( (void *)"http://fuse-emulator.sourceforge.net", 37, b );
+  buffwrite( "http://fuse-emulator.sourceforge.net", 37, b );
 
   /* write data */
   for( i = 0; i < d->cylinders; i++ ) {
@@ -3057,12 +3057,12 @@ write_log( buffer_t *b, libspectrum_disk_t *d )
     User must free *buffer!
 */
 libspectrum_disk_error_t
-libspectrum_disk_write( const libspectrum_disk_t *d1, libspectrum_byte **buffer,
+libspectrum_disk_write( libspectrum_disk_t *d1, libspectrum_byte **buffer,
                         size_t *length, const char *filename )
 {
   buffer_t b;
   size_t namelen;
-  libspectrum_disk_t *d = (libspectrum_disk_t *)d1;
+  libspectrum_disk_t *d = d1;
 
   b.data = libspectrum_malloc( BUFF_ALLOC );
   b.len = BUFF_ALLOC;
@@ -3158,11 +3158,11 @@ libspectrum_disk_write( const libspectrum_disk_t *d1, libspectrum_byte **buffer,
   return d->status = LIBSPECTRUM_DISK_OK;
 }
 
-libspectrum_disk_desc_t *
+const libspectrum_disk_desc_t *
 libspectrum_disk_type_description( libspectrum_disk_type_t dt )
 {
   if( dt <= 0 || dt >= LIBSPECTRUM_DISK_TYPE_LAST )
     return NULL;
 
-  return (void *)&disk_desc[ dt ];
+  return &disk_desc[ dt ];
 }

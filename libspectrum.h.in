@@ -1198,7 +1198,7 @@ libspectrum_disk_merge_sides( libspectrum_disk_t *d, libspectrum_disk_t *d1,
    UDI.
 */
 WIN32_DLL libspectrum_disk_error_t
-libspectrum_disk_write( const libspectrum_disk_t *d, libspectrum_byte **buffer,
+libspectrum_disk_write( libspectrum_disk_t *d, libspectrum_byte **buffer,
                         size_t *length, const char *filename );
 
 /* format disk to plus3 accept for formatting */
@@ -1302,7 +1302,7 @@ libspectrum_guess_track_geom( libspectrum_disk_t *d, int head, int track,
                               int *mfm, int *interl );
 
 /* get information (name, description, URL, ro) about supported disk format */
-WIN32_DLL libspectrum_disk_desc_t *
+WIN32_DLL const libspectrum_disk_desc_t *
 libspectrum_disk_type_description( libspectrum_disk_type_t dt );
 
 /* Various bitmap related functions */
