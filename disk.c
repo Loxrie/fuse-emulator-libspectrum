@@ -707,7 +707,7 @@ gap_add( libspectrum_disk_t *d, int gap, int gaptype )
 }
 
 static int
-preindex_len( libspectrum_disk_t *d, int gaptype )		/* preindex gap and index mark */
+preindex_len( int gaptype )		/* preindex gap and index mark */
 {
   disk_gap_t *g = &gaps[ gaptype ];
   return g->len[0] + g->sync_len + ( g->mark >= 0 ? 3 : 0 ) + 1;
@@ -722,7 +722,7 @@ static int
 preindex_add( libspectrum_disk_t *d, int gaptype )		/* preindex gap and index mark */
 {
   disk_gap_t *g = &gaps[ gaptype ];
-  if( d->i + preindex_len( d, gaptype ) >= d->bpt )
+  if( d->i + preindex_len( gaptype ) >= d->bpt )
     return 1;
 /*------------------------------ pre-index gap -------------------------------*/
   if( gap_add( d, 0, gaptype ) )
@@ -743,7 +743,7 @@ preindex_add( libspectrum_disk_t *d, int gaptype )		/* preindex gap and index ma
 }
 
 static int
-postindex_len( libspectrum_disk_t *d, int gaptype )		/* preindex gap and index mark */
+postindex_len( int gaptype )		/* preindex gap and index mark */
 {
   disk_gap_t *g = &gaps[ gaptype ];
   return g->len[1];
@@ -1669,10 +1669,10 @@ open_fdi( buffer_t *buffer, libspectrum_disk_t *d )
     buffer->idx = head_offset;
     if( buffread( head, 7, buffer ) != 1 )	/* 7 := track head  */
       return d->status = LIBSPECTRUM_DISK_OPEN;
-    bpt = postindex_len( d, GAP_MINIMAL_MFM ) +
-          ( preindex ? preindex_len( d, GAP_MINIMAL_MFM ) : 0 ) + 6; /* +gap4 */
-    bpt_fm = postindex_len( d, GAP_MINIMAL_FM ) +
-             ( preindex ? preindex_len( d, GAP_MINIMAL_FM ) : 0 ) + 3;  /* +gap4 */
+    bpt = postindex_len( GAP_MINIMAL_MFM ) +
+          ( preindex ? preindex_len( GAP_MINIMAL_MFM ) : 0 ) + 6; /* +gap4 */
+    bpt_fm = postindex_len( GAP_MINIMAL_FM ) +
+             ( preindex ? preindex_len( GAP_MINIMAL_FM ) : 0 ) + 3;  /* +gap4 */
     for( j = 0; j < head[0x06]; j++ ) {		/* calculate track len */
       if( j % 35 == 0 ) {				/* 35-sector header */
         if( buffread( head + 7, 245, buffer ) != 1 )	/* 7*35 := max 35 sector head */
@@ -1821,8 +1821,8 @@ open_cpc( buffer_t *buffer, libspectrum_disk_t *d )
       fprintf( stderr, "Track/head info mismatch! (exp:%d got:%d /max:%d/)\n",
                i, buff[0x10] * d->sides, d->sides*d->cylinders );
 
-    bpt = postindex_len( d, gap ) +
-          ( preindex ? preindex_len( d, gap ) : 0 ) +
+    bpt = postindex_len( gap ) +
+          ( preindex ? preindex_len( gap ) : 0 ) +
           ( gap == GAP_MINIMAL_MFM ? 6 : 3 );	/* gap4 */
 
     for( j = 0; j < buff[0x15]; j++ ) {			/* each sector */
@@ -2136,9 +2136,9 @@ open_td0( buffer_t *buffer, libspectrum_disk_t *d )
       d->cylinders = buff[1] + 1;
     sector_offset = track_offset + 4;
     mfm = buff[2] & 0x80 ? 0 : 1;	/* 0x80 == 1 => SD track */
-    bpt = postindex_len( d, mfm_old || mfm ? GAP_MINIMAL_FM : GAP_MINIMAL_MFM ) +
+    bpt = postindex_len( mfm_old || mfm ? GAP_MINIMAL_FM : GAP_MINIMAL_MFM ) +
           ( preindex ?
-            preindex_len( d, mfm_old || mfm ? GAP_MINIMAL_FM : GAP_MINIMAL_MFM ) :
+            preindex_len( mfm_old || mfm ? GAP_MINIMAL_FM : GAP_MINIMAL_MFM ) :
             0 ) +
           mfm_old || mfm ? 6 : 3;
     for( s = 0; s < sectors; s++ ) {
