@@ -71,6 +71,7 @@ static const char * const disk_error[] = {
   "Partially written file",	/* LIBSPECTRUM_DISK_WRPART */
   "Unknown image type",		/* LIBSPECTRUM_DISK_UNKNOWN */
   "Sector not found",		/* LIBSPECTRUM_DISK_SNFOUND */
+  "Invalid parameters",		/* LIBSPECTRUM_DISK_BADPARAM */
 
   "Unknown error code"		/* LIBSPECTRUM_DISK_LAST_ERROR */
 };
@@ -178,10 +179,17 @@ void disk_update_tlens( libspectrum_disk_t *d );
 #define guess_track_geom( d, head, cyl, sector_base, sectors, seclen, mfm) \
   libspectrum_guess_track_geom( d, head, cyl, sector_base, sectors, seclen, mfm, NULL )
 
-void
+libspectrum_disk_error_t
 libspectrum_disk_set_track( libspectrum_disk_t *d, int head, int cyl )
 {
+  if( !d ) return LIBSPECTRUM_DISK_BADPARAM;
+
+  if( head >= d->sides || cyl >= d->cylinders )
+    return LIBSPECTRUM_DISK_GEOM;
+
   DISK_SET_TRACK( d, head, cyl );
+
+  return LIBSPECTRUM_DISK_OK;
 }
 
 const char *
@@ -270,6 +278,9 @@ libspectrum_disk_id_read( libspectrum_disk_t *d, int *head, int *track,
 {
   int a1mark = 0;
 
+  if( !d || !head || !track || !sector || !length )
+    return 0;
+
   while( d->i < d->bpt ) {
     if( d->track[ d->i ] == 0xa1 &&
       libspectrum_bitmap_test( d->clocks, d->i ) ) {		/* 0xa1 with clock */
@@ -302,6 +313,8 @@ libspectrum_disk_datamark_read( libspectrum_disk_t *d, int *deleted, int *fmf )
 {
   int a1mark = 0;
 
+  if( !d || !deleted ) return 0;
+
   while( d->i < d->bpt ) {
     if( d->track[ d->i ] == 0xa1 &&
         libspectrum_bitmap_test( d->clocks, d->i ) ) { /* 0xa1 with clock */
@@ -333,6 +346,8 @@ libspectrum_disk_id_seek( libspectrum_disk_t *d, int sector, int *len )
 {
   int h, t, s, l;
 
+  if( !d ) return 0;
+
   if( len == NULL ) len = &l;
   d->i = 0;	/* start of the track */
   while( id_read( d, &h, &t, &s, len ) ) {
@@ -352,6 +367,9 @@ libspectrum_disk_error_t
 libspectrum_disk_seek( libspectrum_disk_t *d, int head, int cyl, int sector,
                        int *len, int *del, int *fmf )
 {
+  if( !d || !del )
+    return LIBSPECTRUM_DISK_BADPARAM;
+
   if( head >= d->sides || cyl >= d->cylinders )
     return LIBSPECTRUM_DISK_GEOM;
 
@@ -403,6 +421,9 @@ libspectrum_disk_read_sectors( libspectrum_disk_t *d, int head, int cyl,
   int dd = *del;
   int len, dam;
   buffer_t b;
+
+  if( !d || !snum || !del || !buffer || !length )
+    return LIBSPECTRUM_DISK_BADPARAM;
 
   if( head >= d->sides || cyl >= d->cylinders )
     return LIBSPECTRUM_DISK_GEOM;
@@ -947,6 +968,8 @@ libspectrum_disk_data_add( libspectrum_disk_t *d, unsigned char *data, int len,
                            int ddam, int gaptype, int crc_error,
                            int *start_data )
 {
+  if( !d ) return 1;
+
   return data_add( d, NULL, data, len, ddam, gaptype, crc_error, -1,
                    start_data );
 }
@@ -1033,6 +1056,8 @@ trackgen( libspectrum_disk_t *d, buffer_t *buffer, int head, int track,
 void
 libspectrum_disk_close( libspectrum_disk_t *d )
 {
+  if( !d ) return;
+
   if( d->data != NULL ) {
     libspectrum_free( d->data );
     d->data = NULL;
@@ -1098,7 +1123,9 @@ libspectrum_disk_new( libspectrum_disk_t *d, int sides, int cylinders,
                       libspectrum_disk_dens_t density,
                       libspectrum_disk_type_t type )
 {
+  if( !d ) return LIBSPECTRUM_DISK_BADPARAM;
   d->filename = NULL;
+
   if( density < LIBSPECTRUM_DISK_DENS_AUTO || density > LIBSPECTRUM_DISK_HD ||	/* unknown density */
       type <= LIBSPECTRUM_DISK_TYPE_NONE || type >= LIBSPECTRUM_DISK_TYPE_LAST || /* unknown type */
       sides < 1 || sides > 2 ||				/* 1 or 2 side */
@@ -1141,6 +1168,8 @@ libspectrum_disk_error_t
 libspectrum_disk_preformat( libspectrum_disk_t *d )
 {
   buffer_t buffer;
+
+  if( !d ) return LIBSPECTRUM_DISK_BADPARAM;
 
   buffer.len = 0;
   buffer.idx = 0;
@@ -2324,6 +2353,8 @@ libspectrum_disk_open( libspectrum_disk_t *d, libspectrum_byte *buffer,
   libspectrum_id_t type;
   int error;
 
+  if( !d || !buffer ) return LIBSPECTRUM_DISK_BADPARAM;
+
   b.idx = 0;
   b.data = buffer;
   b.len = length;
@@ -2430,6 +2461,9 @@ libspectrum_disk_merge_sides( libspectrum_disk_t *d, libspectrum_disk_t *d1,
 {
   int i;
   int clen;
+
+  if( !d || !d1 || !d2 )
+    return LIBSPECTRUM_DISK_BADPARAM;
 
   if( d1->sides != 1 || d2->sides != 1 ||
       d1->bpt != d2->bpt ||
@@ -3063,6 +3097,9 @@ libspectrum_disk_write( libspectrum_disk_t *d1, libspectrum_byte **buffer,
   buffer_t b;
   size_t namelen;
   libspectrum_disk_t *d = d1;
+
+  if( !d || !buffer || !length )
+    return LIBSPECTRUM_DISK_BADPARAM;
 
   b.data = libspectrum_malloc( BUFF_ALLOC );
   b.len = BUFF_ALLOC;

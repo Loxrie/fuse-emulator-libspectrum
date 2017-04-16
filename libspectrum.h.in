@@ -1058,6 +1058,7 @@ typedef enum libspectrum_disk_error_t {
   LIBSPECTRUM_DISK_WRPART,
   LIBSPECTRUM_DISK_UNKNOWN,
   LIBSPECTRUM_DISK_SNFOUND,
+  LIBSPECTRUM_DISK_BADPARAM,
 
   LIBSPECTRUM_DISK_LAST_ERROR,
 } libspectrum_disk_error_t;
@@ -1160,7 +1161,7 @@ typedef struct libspectrum_disk_t {
 } libspectrum_disk_t;
 
 /* set disk_t pointers to the desired track */
-WIN32_DLL void
+WIN32_DLL libspectrum_disk_error_t
 libspectrum_disk_set_track( libspectrum_disk_t *d, int head, int cyl );
 
 WIN32_DLL const char *
