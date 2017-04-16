@@ -87,7 +87,7 @@ static const libspectrum_disk_desc_t disk_desc[] = {
   { "DSK/CPC", "", "http://cpctech.cpc-live.com/docs/dsk.html", 0 },
   { "DSK/ECPC", "", "http://cpctech.cpc-live.com/docs/extdsk.html", 1 },
   { "TRD", "", "https://faqwiki.zxnet.co.uk/wiki/TRD_format", 0 },
-  { "SCL", "", "https://faqwiki.zxnet.co.uk/wiki/TRD_format#SCL_Format", 1 },
+  { "SCL", "", "https://faqwiki.zxnet.co.uk/wiki/TRD_format#SCL_Format", 0 },
   { "OPD/OPU", "Opus Discovery disk image", "https://faqwiki.zxnet.co.uk/wiki/OPD_format", 0 },
   { "D40", "Didaktik 40 disk image", "", 0 },
   { "D80", "Didaktik 80 disk image", "", 0 },
