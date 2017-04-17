@@ -1108,6 +1108,8 @@ disk_alloc( libspectrum_disk_t *d )
 
   if( d->bpt > 0 )
     d->tlen = 4 + d->bpt + 3 * DISK_CLEN( d->bpt );
+  else
+    d->tlen = 0;
 
   dlen = d->sides * d->cylinders * d->tlen;	/* track len with clock and other marks */
   if( dlen == 0 ) return d->status = LIBSPECTRUM_DISK_GEOM;
