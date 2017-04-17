@@ -3091,12 +3091,11 @@ write_log( buffer_t *b, libspectrum_disk_t *d )
     User must free *buffer!
 */
 libspectrum_disk_error_t
-libspectrum_disk_write( libspectrum_disk_t *d1, libspectrum_byte **buffer,
+libspectrum_disk_write( libspectrum_disk_t *d, libspectrum_byte **buffer,
                         size_t *length, const char *filename )
 {
   buffer_t b;
   size_t namelen;
-  libspectrum_disk_t *d = d1;
 
   if( !d || !buffer || !length )
     return LIBSPECTRUM_DISK_BADPARAM;
