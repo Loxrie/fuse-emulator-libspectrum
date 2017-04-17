@@ -1160,27 +1160,30 @@ typedef struct libspectrum_disk_t {
   libspectrum_disk_dens_t density;	/* DISK_SD DISK_DD, or DISK_HD */
 } libspectrum_disk_t;
 
-/* set disk_t pointers to the desired track */
+/* set libspectrum_disk_t pointers to the desired track */
 WIN32_DLL libspectrum_disk_error_t
 libspectrum_disk_set_track( libspectrum_disk_t *d, int head, int cyl );
 
 WIN32_DLL const char *
 libspectrum_disk_strerror( libspectrum_disk_error_t error );
 
-/* create an unformatted disk sides -> (1/2) cylinders -> track/side,
-   dens -> 'density' related to unformatted length of a track (SD = 3125,
-   DD = 6250, HD = 12500, type -> if write this disk we want to convert
-   into this type of image file
+/* create an unformatted disk
+   sides -> (1/2)
+   cylinders -> tracks/side,
+   density -> unformatted length of a track (SD = 3125, DD = 6250, HD = 12500).
+   type -> preferred image format if the disk is written to a file.
 */
 WIN32_DLL libspectrum_disk_error_t
 libspectrum_disk_new( libspectrum_disk_t *d, int sides, int cylinders,
-                      libspectrum_disk_dens_t dens,
+                      libspectrum_disk_dens_t density,
                       libspectrum_disk_type_t type );
 
-/* open a disk image file. if preindex = 1 and the image file not UDI then
-   pre-index gap generated with index mark (0xfc)
-   this time only .mgt(.dsk)/.img/.udi and CPC/extended CPC file format
-   supported
+/* Open a disk image file from given buffer. Identifies the disk type and
+   rebuilds internally the disk geometry.
+
+   The geometry can be tune-up through flags (d->flag), e.g., if
+   LIBSPECTRUM_DISK_FLAG_PREIDX is set and the disk type is not UDI, then a
+   pre-index gap is generated with index mark (0xfc).
 */
 WIN32_DLL libspectrum_disk_error_t
 libspectrum_disk_open( libspectrum_disk_t *disk, libspectrum_byte *buffer,
@@ -1193,10 +1196,11 @@ WIN32_DLL libspectrum_disk_error_t
 libspectrum_disk_merge_sides( libspectrum_disk_t *d, libspectrum_disk_t *d1,
                               libspectrum_disk_t *d2, int autofill );
 
-/* write a disk image file (from the disk buffer). the d->type
-   gives the format of file. if it DISK_TYPE_AUTO, disk_write
-   try to guess from the file name (extension). if fail save as
-   UDI.
+/* Write a disk image into a newly allocated buffer.
+   d->type determines the format. In the case of LIBSPECTRUM_DISK_TYPE_NONE,
+     the format is guessed from the filename extension in `filename' parameter.
+     The fallback format is UDI.
+   The ownership of `buffer' is transferred and should be freed.
 */
 WIN32_DLL libspectrum_disk_error_t
 libspectrum_disk_write( libspectrum_disk_t *d, libspectrum_byte **buffer,
@@ -1214,34 +1218,37 @@ libspectrum_disk_close( libspectrum_disk_t *d );
 WIN32_DLL libspectrum_word
 libspectrum_disk_crc( libspectrum_word crc, libspectrum_byte data );
 
-/*  read next datamark from track (d->track, d->i)
-    set deleted = 1 if data is deleted
-    if fmf != NULL *fmf = 1 if datamark is FMF (3x 0xa1 bytes)
+/*  Read next datamark from current track/position.
+    The current position (d->i) is moved and points to the first data byte in
+      the sector.
+    `deleted' is set to 1 if data is marked as deleted.
+    If `fmf' is not NULL, it is set to 1 if datamark is FMF (3x 0xa1 bytes)
+    Returns non-zero on success.
 */
 WIN32_DLL int
 libspectrum_disk_datamark_read( libspectrum_disk_t *d, int *deleted, int *fmf );
 
-/*  read next id from track (d->track, d->i)
-    return with header data:
-      head, track, sector, length (length code)
+/*  Read next sector's ID from current track/position.
+    The current position (d->i) is moved after the 2 CRC bytes and points
+      to the first GAP byte.
+    `head', `track', `sector' and `length' code are set.
+    Returns non-zero on success.
 */
 WIN32_DLL int
 libspectrum_disk_id_read( libspectrum_disk_t *d, int *head, int *track,
                           int *sector, int *length );
 
 /*  seek to `sector' sector in current track
-    if len != NULL, return with sector length
-    *code*: `len'
-    d->i pont after the 2 CRC byte (the first GAP byte)
+    If `len' is not NULL, it is set with the sector's length code.
+    d->i is moved after the 2 CRC bytes and points to the first GAP byte.
 */
 WIN32_DLL int
 libspectrum_disk_id_seek( libspectrum_disk_t *d, int sector, int *len );
 
-/*  Seek to a head, cyl, sector position
-    if len != NULL, return with sector length
-    *code*: `len'  and data mark properies:
-    `deleted', `mfm' data
-    d->i point to the first data byte in sector
+/*  Seek the specified head/cyl/sector.
+    If `len' is not NULL, it is set with the sector's length code.
+    `del' and `mfm' are set to their respective data mark properties.
+    d->i is moved and points to the first data byte in the sector.
 */
 WIN32_DLL libspectrum_disk_error_t
 libspectrum_disk_seek( libspectrum_disk_t *d, int head, int cyl, int sector,
@@ -1284,18 +1291,18 @@ libspectrum_disk_data_add( libspectrum_disk_t *d, unsigned char *data, int len,
                            int ddam, int gaptype, int crc_error,
                            int *start_data );
 
-/* scan track and return variouse information about
+/* Scan the specified track and return information about:
   sector_base = lowest sector num (usually 1) -1 -> unknown (no sector data)
   sectors = number of sectors -1 -> unknown (no sector data)
   seclen = longest sector length  -1 -> unknown (no sector data)
   mfm = 0 -> fm, 1 -> mfm, 2 -> mixed, -1 -> unknown
 
-  the return int is a flag ORed from:
+  Returns an integer with bitwise ORed flags:
     LIBSPECTRUM_DISK_CORRUPT_SECTOR -> there is sector head without correct data
     LIBSPECTRUM_DISK_MFM_VARI -> mixed FM/MFM sector data
     LIBSPECTRUM_DISK_ID_NOTMATCH -> ID(track num) not match real track num
     LIBSPECTRUM_DISK_SECLEN_VARI -> not equal length sectors
-    LIBSPECTRUM_DISK_DDAM -> there is deleted sectors (DDAM)
+    LIBSPECTRUM_DISK_DDAM -> there are deleted sectors (DDAM)
 */
 WIN32_DLL int
 libspectrum_guess_track_geom( libspectrum_disk_t *d, int head, int track,

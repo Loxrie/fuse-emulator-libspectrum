@@ -81,8 +81,8 @@ static const libspectrum_disk_desc_t disk_desc[] = {
   { "UDI", "Ultra Disk Image", "https://faqwiki.zxnet.co.uk/wiki/UDI_format", 0 },
   { "FDI", "UKV Spectrum Debugger's Full Disk Image", "http://www.worldofspectrum.org/faq/reference/formats.htm#FDI", 0 },
   { "TD0", "Teledisk image", "http://www.classiccmp.org/dunfield/img54306/td0notes.txt", 1 },
-  { "MGT", "Disciple/+D disk image", "https://faqwiki.zxnet.co.uk/wiki/MGT_format", 0 },
-  { "IMG", "Disciple/+D disk image", "https://faqwiki.zxnet.co.uk/wiki/MGT_format", 0 },
+  { "MGT", "DISCiPLE/+D disk image", "https://faqwiki.zxnet.co.uk/wiki/MGT_format", 0 },
+  { "IMG", "DISCiPLE/+D disk image", "https://faqwiki.zxnet.co.uk/wiki/MGT_format", 0 },
   { "SAD", "SAm Disk (SAM Coupe)", "", 0 },
   { "DSK/CPC", "", "http://cpctech.cpc-live.com/docs/dsk.html", 0 },
   { "DSK/ECPC", "", "http://cpctech.cpc-live.com/docs/extdsk.html", 1 },
@@ -338,7 +338,7 @@ libspectrum_disk_datamark_read( libspectrum_disk_t *d, int *deleted, int *fmf )
 /*
   seek to `sector' sector in current track
   return with sector length *code*: `len'
-  d->i pont after the 2 CRC byte (the first GAP byte)
+  d->i is moved after the 2 CRC bytes and points to the first GAP byte
 */
 #define id_seek( d, s ) libspectrum_disk_id_seek( d, s, NULL )
 int
@@ -360,7 +360,7 @@ libspectrum_disk_id_seek( libspectrum_disk_t *d, int sector, int *len )
 /*
     Seek to a head, cyl, sector data position
     return with sector length *code*: `len'  and
-    data mark properies: `deleted', `mfm' data
+    data mark properties: `deleted', `mfm' data
     d->i point to the first data byte in sector
 */
 libspectrum_disk_error_t

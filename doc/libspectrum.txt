@@ -10,8 +10,9 @@ handles:
 * Tape images: .tzx, .tap, .spc, .sta and .ltp (read/write) and
   .pzx, Warajevo .tap, Z80Em and CSW version 1 (read only). 
 * Input recordings: .rzx (read/write).
-* Disk images: .dsk (both plain and extended), .d40, .d80, .fdi, .img, .mgt,
-  .opd, .sad, .scl, .td0, .trd and .udi (identification only).
+* Disk images: .dsk (plain), .d40, .d80, .fdi, .img, .mgt, .opd, .sad,
+  .scl, .trd and .udi (all read/write); .dsk (extended) and .td0
+  (read only).
 * Timex cartridges: .dck (read only).
 * IDE hard disk images: .hdf (read/write).
 * Microdrive cartridge images: .mdr (read/write).
@@ -1867,6 +1868,200 @@ libspectrum_ide_write( libspectrum_ide_channel *chn,
 		       libspectrum_ide_register reg, libspectrum_byte data )
 
 Write `data' to register `reg' of the IDE channel `chn'.
+
+Floppy disk images
+==================
+
+libspectrum uses the `libspectrum_disk_t' structure to represent
+a disk image. Essentially, a `libspectrum_disk_t' is a list of tracks
+in raw format, i.e., gaps, sync bytes, marks, data, crc, etc.
+
+  [ PRE-INDEX GAP ] [ POST-INDEX GAP ] [ ID RECORD 0 ] [ DATA RECORD 0 ] ...
+                                      |-------------------------------->
+                                                    SECTOR
+
+The API has low-level functions to access data sequentially, like a
+read/write head in a disk drive. There are also high-level functions that
+retrieve data in a logical way, though. Data is usually read/written as
+sectors blocks.
+
+The routines for dealing with disks are:
+
+libspectrum_disk_error_t
+libspectrum_disk_new( libspectrum_disk_t *d, int sides, int cylinders,
+                      libspectrum_disk_dens_t density,
+                      libspectrum_disk_type_t type )
+
+Create a new unformatted disk with the specified sides and cylinders.
+`density' defines the unformatted length of a track (SD = 3125, DD = 6250,
+HD = 12500 or LIBSPECTRUM_DISK_DENS_AUTO).
+`type' is the preferred image format if the disk is written to a file. Type
+LIBSPECTRUM_DISK_UDI is recommended.
+
+libspectrum_disk_error_t
+libspectrum_disk_open( libspectrum_disk_t *d, libspectrum_byte *buffer,
+                       size_t length )
+
+Open a disk image from buffer. Identifies the disk type and rebuilds
+internally the disk geometry.
+
+Prior to the call to this function, some fields of libspectrum_disk_t should
+be set, e.g., the filename of the file (d->filename) and the type (d->type)
+of image. In the case of LIBSPECTRUM_DISK_TYPE_NONE, the format is guessed
+from the filename extension in `filename' parameter.
+
+The geometry can be tune-up through flags (d->flag), e.g., if
+LIBSPECTRUM_DISK_FLAG_PREIDX is set and the disk type is not UDI, then
+a pre-index gap is generated with index mark (0xfc).
+
+void
+libspectrum_disk_close( libspectrum_disk_t *d )
+
+Close a disk and free internal buffers allocated by `libspectrum_disk_open'
+or `libspectrum_disk_new'.
+
+libspectrum_word
+libspectrum_disk_crc( libspectrum_word crc, libspectrum_byte data )
+
+Calculate CRC by CRC-16-CCITT algorithm, used by floppy disk controllers
+to check data integrity.
+
+int
+libspectrum_disk_data_add( libspectrum_disk_t *d, unsigned char *data, int len,
+                           int ddam, int gaptype, int crc_error,
+                           int *start_data )
+
+Add/overwrite data (sector data) at current position (after next datamark).
+Returns 0 on success.
+
+  [ ....GAP.... ] [ ... SYNC ... ] [ . MARK . ] [ .. DATA .. ] [ . CRC . ]
+ |-------------------------------------------->
+                  datamark
+
+int
+libspectrum_disk_datamark_read( libspectrum_disk_t *d, int *deleted, int *fmf )
+
+Read next datamark from current track/position. The current position is
+moved and points to the first data byte in the sector.
+`deleted' and `fmf' are set to their respective data mark properties.
+Returns non-zero on success.
+
+int
+libspectrum_disk_id_read( libspectrum_disk_t *d, int *head, int *track,
+                          int *sector, int *length )
+
+Read next sector's ID from current track/position. The current position
+is moved after the 2 CRC bytes and points to the first GAP byte.
+`head', `track', `sector' and `length' code are set. Returns non-zero on
+success.
+
+  [ ....GAP.... ] [ ... SYNC ... ] [ . MARK . ] [ .. DATA .. ] [ . CRC . ]
+                 |------------------------------------------------------->
+                                    ID
+
+int
+libspectrum_disk_id_seek( libspectrum_disk_t *d, int sector, int *len )
+
+Seek a sector in the current track. The current position is moved after
+the 2 CRC bytes and points to the first GAP byte.
+`len' is set with the sector's length code.
+Returns non-zero on success.
+
+libspectrum_disk_error_t
+libspectrum_disk_merge_sides( libspectrum_disk_t *d, libspectrum_disk_t *d1,
+                              libspectrum_disk_t *d2, int autofill )
+
+Merge two disks `d1' and `d2' with one side into a to new disk `d' with two
+sides. After the merge, `d1' and `d2' disks are closed.
+
+libspectrum_disk_error_t
+libspectrum_disk_preformat( libspectrum_disk_t *d )
+
+Preformat a blank disk with a few tracks to allow a +3 machine to format
+the whole disk.
+
+libspectrum_disk_error_t
+libspectrum_disk_read_sectors( libspectrum_disk_t *d, int head, int cyl,
+                               int sector, int *snum, int *del,
+                               libspectrum_byte **buffer, size_t *length,
+                               int *prop, int *sprop )
+
+Read `snum' sector's data from specified head/cyl/sector into a buffer.
+If `del' is not zero, then deleted sectors are also read.
+`buffer' is allocated and filled with requested data. Ownership is transferred
+and should be freed. `buffer' is set to NULL if no data is found.
+`snum' and `del' are IN/OUT parameters, so their values could be overwritten.
+
+libspectrum_disk_error_t
+libspectrum_disk_seek( libspectrum_disk_t *d, int head, int cyl, int sector,
+                       int *len, int *del, int *fmf )
+
+Seek the specified head/cyl/sector and move the current position to the
+first data byte in the sector.
+`len' is set with the sector's length code.
+`del' and `mfm' are set to their respective data mark properties.
+
+libspectrum_disk_error_t
+libspectrum_disk_set_track( libspectrum_disk_t *d, int head, int cyl )
+
+Change the current track to the specified head (side) and cylinder.
+
+const char *
+libspectrum_disk_strerror( libspectrum_disk_error_t error )
+
+Returns a pointer to a string that describes the error code passed in the
+argument. The ownership is not transferred and should not be freed.
+
+Available error codes:
+
+  LIBSPECTRUM_DISK_OK:       OK (no error)
+  LIBSPECTRUM_DISK_IMPL:     Feature not implemented
+  LIBSPECTRUM_DISK_MEM:      Out of memory
+  LIBSPECTRUM_DISK_GEOM:     Invalid disk geometry
+  LIBSPECTRUM_DISK_OPEN:     Cannot open disk image
+  LIBSPECTRUM_DISK_UNSUP:    Unsupported file feature
+  LIBSPECTRUM_DISK_RDONLY:   Read only disk
+  LIBSPECTRUM_DISK_CLOSE:    Cannot close file
+  LIBSPECTRUM_DISK_WRFILE:   Cannot write disk image
+  LIBSPECTRUM_DISK_WRPART:   Partially written file
+  LIBSPECTRUM_DISK_UNKNOWN:  Unknown image type
+  LIBSPECTRUM_DISK_SNFOUND:  Sector not found
+  LIBSPECTRUM_DISK_BADPARAM: Invalid parameters
+
+const libspectrum_disk_desc_t *
+libspectrum_disk_type_description( libspectrum_disk_type_t dt )
+
+Returns a pointer to support information (name, description, specifications,
+read-only) about the disk format passed in the argument. The ownership is not
+transferred and should not be freed.
+
+libspectrum_disk_error_t
+libspectrum_disk_write( libspectrum_disk_t *d, libspectrum_byte **buffer,
+                        size_t *length, const char *filename )
+
+Write a disk image into a newly allocated buffer. d->type determines the
+format. In the case of LIBSPECTRUM_DISK_TYPE_NONE, the format is guessed from
+the filename extension in `filename' parameter. The fallback format is UDI.
+
+The ownership of `buffer' is transferred and should be freed.
+
+int
+libspectrum_guess_track_geom( libspectrum_disk_t *d, int head, int track,
+                              int *sector_base, int *sectors, int *seclen,
+                              int *mfm, int *interl )
+
+Scan the specified track and set information about:
+  sector_base = lowest sector num (usually 1); -1 -> unknown (no sector data)
+  sectors = number of sectors; -1 -> unknown (no sector data)
+  seclen = longest sector length; -1 -> unknown (no sector data)
+  mfm = 0 -> fm; 1 -> mfm; 2 -> mixed; -1 -> unknown
+
+Returns an integer with bitwise ORed flags:
+  LIBSPECTRUM_DISK_CORRUPT_SECTOR -> there is sector head without correct data
+  LIBSPECTRUM_DISK_MFM_VARI -> mixed FM/MFM sector data
+  LIBSPECTRUM_DISK_ID_NOTMATCH -> ID(track num) not match real track num
+  LIBSPECTRUM_DISK_SECLEN_VARI -> not equal length sectors
+  LIBSPECTRUM_DISK_DDAM -> there are deleted sectors
 
 Thread Safety
 =============
