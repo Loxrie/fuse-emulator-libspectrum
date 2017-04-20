@@ -174,13 +174,13 @@ typedef struct buffer_t {		/* to store buffer data */
 /* data buffer */
 #define buff ( buffer->data + buffer->idx )
 
-void disk_update_tlens( libspectrum_disk_t *d );
+void disk_update_tlens( libspectrum_disk *d );
 
 #define guess_track_geom( d, head, cyl, sector_base, sectors, seclen, mfm) \
   libspectrum_guess_track_geom( d, head, cyl, sector_base, sectors, seclen, mfm, NULL )
 
 libspectrum_disk_error_t
-libspectrum_disk_set_track( libspectrum_disk_t *d, int head, int cyl )
+libspectrum_disk_set_track( libspectrum_disk *d, int head, int cyl )
 {
   if( !d ) return LIBSPECTRUM_DISK_BADPARAM;
 
@@ -273,7 +273,7 @@ crc_udi( libspectrum_signed_dword crc, libspectrum_byte data )
 */
 #define id_read( d, h, t, s, l ) libspectrum_disk_id_read( d, h, t, s, l )
 int
-libspectrum_disk_id_read( libspectrum_disk_t *d, int *head, int *track,
+libspectrum_disk_id_read( libspectrum_disk *d, int *head, int *track,
                           int *sector, int *length )
 {
   int a1mark = 0;
@@ -309,7 +309,7 @@ libspectrum_disk_id_read( libspectrum_disk_t *d, int *head, int *track,
 #define datamark_read( d, deleted, fmf ) \
   libspectrum_disk_datamark_read( d, deleted, fmf )
 int
-libspectrum_disk_datamark_read( libspectrum_disk_t *d, int *deleted, int *fmf )
+libspectrum_disk_datamark_read( libspectrum_disk *d, int *deleted, int *fmf )
 {
   int a1mark = 0;
 
@@ -342,7 +342,7 @@ libspectrum_disk_datamark_read( libspectrum_disk_t *d, int *deleted, int *fmf )
 */
 #define id_seek( d, s ) libspectrum_disk_id_seek( d, s, NULL )
 int
-libspectrum_disk_id_seek( libspectrum_disk_t *d, int sector, int *len )
+libspectrum_disk_id_seek( libspectrum_disk *d, int sector, int *len )
 {
   int h, t, s, l;
 
@@ -364,7 +364,7 @@ libspectrum_disk_id_seek( libspectrum_disk_t *d, int sector, int *len )
     d->i point to the first data byte in sector
 */
 libspectrum_disk_error_t
-libspectrum_disk_seek( libspectrum_disk_t *d, int head, int cyl, int sector,
+libspectrum_disk_seek( libspectrum_disk *d, int head, int cyl, int sector,
                        int *len, int *del, int *fmf )
 {
   if( !d || !del )
@@ -385,7 +385,7 @@ libspectrum_disk_seek( libspectrum_disk_t *d, int head, int cyl, int sector,
   copy data from a sector, handle track length and wraparound...
 */
 static void
-read_sector_data( libspectrum_disk_t *d, libspectrum_byte *buffer, int len )
+read_sector_data( libspectrum_disk *d, libspectrum_byte *buffer, int len )
 {
   while( len ) {
     if( d->i >= d->bpt ) {
@@ -412,7 +412,7 @@ read_sector_data( libspectrum_disk_t *d, libspectrum_byte *buffer, int len )
           the given values are overwritten!
 */
 libspectrum_disk_error_t
-libspectrum_disk_read_sectors( libspectrum_disk_t *d, int head, int cyl,
+libspectrum_disk_read_sectors( libspectrum_disk *d, int head, int cyl,
                                int sector, int *snum, int *del,
                                libspectrum_byte **buffer, size_t *length,
                                int *prop, int *sprop )
@@ -489,7 +489,7 @@ libspectrum_disk_read_sectors( libspectrum_disk_t *d, int head, int cyl,
 
 /* seclen 00 -> 128, 01 -> 256 ... byte */
 static int
-data_write_file( libspectrum_disk_t *d, buffer_t *b, int seclen )
+data_write_file( libspectrum_disk *d, buffer_t *b, int seclen )
 {
   int len = 0x80 << seclen;
   /* TODO: check len? */
@@ -504,7 +504,7 @@ data_write_file( libspectrum_disk_t *d, buffer_t *b, int seclen )
      e.g.: sector 1,2,3,4,5,6,7,...
 */
 static int
-savetrack( libspectrum_disk_t *d, buffer_t *b, int head, int track,
+savetrack( libspectrum_disk *d, buffer_t *b, int head, int track,
            int sector_base, int sectors, int seclen )
 {
   int s;
@@ -529,7 +529,7 @@ savetrack( libspectrum_disk_t *d, buffer_t *b, int head, int track,
     write all sector data from `track' as laid in track
 */
 static int
-saverawtrack( libspectrum_disk_t *d, buffer_t *b, int head, int track )
+saverawtrack( libspectrum_disk *d, buffer_t *b, int head, int track )
 {
   int h, t, s, seclen;
   int del;
@@ -559,7 +559,7 @@ saverawtrack( libspectrum_disk_t *d, buffer_t *b, int head, int track )
 */
 
 int
-libspectrum_guess_track_geom( libspectrum_disk_t *d, int head, int track,
+libspectrum_guess_track_geom( libspectrum_disk *d, int head, int track,
                               int *sector_base, int *sectors, int *seclen,
                               int *mfm, int *interl )
 {
@@ -625,7 +625,7 @@ libspectrum_guess_track_geom( libspectrum_disk_t *d, int head, int track,
 }
 
 static void
-update_tracks_mode( libspectrum_disk_t *d )
+update_tracks_mode( libspectrum_disk *d )
 {
   int i, j, bpt;
   int mfm, fm, weak;
@@ -650,7 +650,7 @@ update_tracks_mode( libspectrum_disk_t *d )
 }
 
 static int
-check_disk_geom( libspectrum_disk_t *d, int *sector_base, int *sectors,
+check_disk_geom( libspectrum_disk *d, int *sector_base, int *sectors,
                  int *seclen, int *mfm, int *unf )
 {
   int h, t, s, slen, sbase, m;
@@ -717,7 +717,7 @@ check_disk_geom( libspectrum_disk_t *d, int *sector_base, int *sectors,
 }
 
 static int
-gap_add( libspectrum_disk_t *d, int gap, int gaptype )
+gap_add( libspectrum_disk *d, int gap, int gaptype )
 {
   disk_gap_t *g = &gaps[ gaptype ];
   if( d->i + g->len[gap]  >= d->bpt )  /* too many data bytes */
@@ -740,7 +740,7 @@ preindex_len( int gaptype )		/* preindex gap and index mark */
                 Preindex
 */
 static int
-preindex_add( libspectrum_disk_t *d, int gaptype )		/* preindex gap and index mark */
+preindex_add( libspectrum_disk *d, int gaptype )		/* preindex gap and index mark */
 {
   disk_gap_t *g = &gaps[ gaptype ];
   if( d->i + preindex_len( gaptype ) >= d->bpt )
@@ -771,13 +771,13 @@ postindex_len( int gaptype )		/* preindex gap and index mark */
 }
 
 static int
-postindex_add( libspectrum_disk_t *d, int gaptype )		/* postindex gap */
+postindex_add( libspectrum_disk *d, int gaptype )		/* postindex gap */
 {
   return gap_add( d, 1, gaptype );
 }
 
 static int
-gap4_add( libspectrum_disk_t *d, int gaptype )
+gap4_add( libspectrum_disk *d, int gaptype )
 {
   int len = d->bpt - d->i;
   disk_gap_t *g = &gaps[ gaptype ];
@@ -804,7 +804,7 @@ gap4_add( libspectrum_disk_t *d, int gaptype )
                                     ID
 */
 static int
-id_add( libspectrum_disk_t *d, int h, int t, int s, int l, int gaptype,
+id_add( libspectrum_disk *d, int h, int t, int s, int l, int gaptype,
         int crc_error )
 {
   libspectrum_word crc = 0xffff;
@@ -848,7 +848,7 @@ id_add( libspectrum_disk_t *d, int h, int t, int s, int l, int gaptype,
                   datamark
 */
 static int
-datamark_add( libspectrum_disk_t *d, int ddam, int gaptype )
+datamark_add( libspectrum_disk *d, int ddam, int gaptype )
 {
   disk_gap_t *g = &gaps[ gaptype ];
   if( d->i + g->len[2] + g->sync_len + ( g->mark >= 0 ? 3 : 0 ) + 1 >= d->bpt )
@@ -880,7 +880,7 @@ datamark_add( libspectrum_disk_t *d, int ddam, int gaptype )
      first found data...
 */
 static int
-data_add( libspectrum_disk_t *d, buffer_t *buffer, unsigned char *data,
+data_add( libspectrum_disk *d, buffer_t *buffer, unsigned char *data,
           int len, int ddam, int gaptype, int crc_error, int autofill,
           int *start_data )
 {
@@ -964,7 +964,7 @@ header_crc_error:
   start_data -> if !NULL the index of data pos (d->i)
 */
 int
-libspectrum_disk_data_add( libspectrum_disk_t *d, unsigned char *data, int len,
+libspectrum_disk_data_add( libspectrum_disk *d, unsigned char *data, int len,
                            int ddam, int gaptype, int crc_error,
                            int *start_data )
 {
@@ -1013,7 +1013,7 @@ calc_lenid( int sector_length )
 #define PREINDEX 1
 
 static int
-trackgen( libspectrum_disk_t *d, buffer_t *buffer, int head, int track,
+trackgen( libspectrum_disk *d, buffer_t *buffer, int head, int track,
           int sector_base, int sectors, int sector_length, int preindex,
           int gap, int interleave, int autofill )
 {
@@ -1054,7 +1054,7 @@ trackgen( libspectrum_disk_t *d, buffer_t *buffer, int head, int track,
 
 /* close and destroy a disk structure and data */
 void
-libspectrum_disk_close( libspectrum_disk_t *d )
+libspectrum_disk_close( libspectrum_disk *d )
 {
   if( !d ) return;
 
@@ -1078,7 +1078,7 @@ libspectrum_disk_close( libspectrum_disk_t *d )
  *  or use d->density
  */
 static int
-disk_alloc( libspectrum_disk_t *d )
+disk_alloc( libspectrum_disk *d )
 {
   size_t dlen;
 
@@ -1121,7 +1121,7 @@ disk_alloc( libspectrum_disk_t *d )
 
 /* create a new unformatted disk  */
 libspectrum_disk_error_t
-libspectrum_disk_new( libspectrum_disk_t *d, int sides, int cylinders,
+libspectrum_disk_new( libspectrum_disk *d, int sides, int cylinders,
                       libspectrum_disk_dens_t density,
                       libspectrum_disk_type_t type )
 {
@@ -1167,7 +1167,7 @@ alloc_uncompress_buffer( unsigned char **buffer, int length )
 }
 
 libspectrum_disk_error_t
-libspectrum_disk_preformat( libspectrum_disk_t *d )
+libspectrum_disk_preformat( libspectrum_disk *d )
 {
   buffer_t buffer;
 
@@ -1242,7 +1242,7 @@ udi_write_compressed( const libspectrum_byte *buffer,
 #endif			/* #ifdef LIBSPECTRUM_SUPPORTS_ZLIB_COMPRESSION */
 
 static void
-udi_pack_tracks( libspectrum_disk_t *d )
+udi_pack_tracks( libspectrum_disk *d )
 {
   int i, tlen, clen, ttyp;
   libspectrum_byte *tmp;
@@ -1271,7 +1271,7 @@ udi_pack_tracks( libspectrum_disk_t *d )
 }
 
 static void
-udi_unpack_tracks( libspectrum_disk_t *d )
+udi_unpack_tracks( libspectrum_disk *d )
 {
   int i, tlen, clen, ttyp;
   libspectrum_byte *tmp;
@@ -1317,7 +1317,7 @@ udi_unpack_tracks( libspectrum_disk_t *d )
                                         ( type & 0x80 ? 1 : 0 ) ) )
 
 static int
-udi_uncompress_tracks( libspectrum_disk_t *d )
+udi_uncompress_tracks( libspectrum_disk *d )
 {
   int i;
   libspectrum_byte *data = NULL;
@@ -1356,7 +1356,7 @@ udi_uncompress_tracks( libspectrum_disk_t *d )
 
 #ifdef LIBSPECTRUM_SUPPORTS_ZLIB_COMPRESSION
 static int
-udi_compress_tracks( libspectrum_disk_t *d )
+udi_compress_tracks( libspectrum_disk *d )
 {
   int i, tlen;
   libspectrum_byte *data = NULL;
@@ -1390,7 +1390,7 @@ udi_compress_tracks( libspectrum_disk_t *d )
 #endif			/* #ifdef LIBSPECTRUM_SUPPORTS_ZLIB_COMPRESSION */
 
 static int
-open_udi( buffer_t *buffer, libspectrum_disk_t *d )
+open_udi( buffer_t *buffer, libspectrum_disk *d )
 {
   int i, bpt, ttyp, tlen, error;
   size_t eof;
@@ -1498,7 +1498,7 @@ open_udi( buffer_t *buffer, libspectrum_disk_t *d )
 }
 
 static int
-open_img_mgt_opd( buffer_t *buffer, libspectrum_disk_t *d )
+open_img_mgt_opd( buffer_t *buffer, libspectrum_disk *d )
 {
   int i, j, sectors, seclen;
 
@@ -1558,7 +1558,7 @@ open_img_mgt_opd( buffer_t *buffer, libspectrum_disk_t *d )
 }
 
 static int
-open_d40_d80( buffer_t *buffer, libspectrum_disk_t *d )
+open_d40_d80( buffer_t *buffer, libspectrum_disk *d )
 {
   int i, j, sectors, seclen;
 
@@ -1597,7 +1597,7 @@ open_d40_d80( buffer_t *buffer, libspectrum_disk_t *d )
  *
  */
 static int
-open_sad( buffer_t *buffer, libspectrum_disk_t *d )
+open_sad( buffer_t *buffer, libspectrum_disk *d )
 {
   int i, j, sectors, seclen, preindex;
 
@@ -1626,7 +1626,7 @@ open_sad( buffer_t *buffer, libspectrum_disk_t *d )
 }
 
 static int
-open_trd( buffer_t *buffer, libspectrum_disk_t *d )
+open_trd( buffer_t *buffer, libspectrum_disk *d )
 {
   int i, j, sectors, seclen;
 
@@ -1678,7 +1678,7 @@ open_trd( buffer_t *buffer, libspectrum_disk_t *d )
  *
  */
 static int
-open_fdi( buffer_t *buffer, libspectrum_disk_t *d )
+open_fdi( buffer_t *buffer, libspectrum_disk *d )
 {
   int i, j, h, gap, preindex;
   int bpt, bpt_fm, max_bpt = 0, max_bpt_fm = 0;
@@ -1775,7 +1775,7 @@ open_fdi( buffer_t *buffer, libspectrum_disk_t *d )
 }
 
 static void
-cpc_set_weak_range( libspectrum_disk_t *d, int idx, buffer_t *buffer, int n,
+cpc_set_weak_range( libspectrum_disk *d, int idx, buffer_t *buffer, int n,
                     int len )
 {
   int i, j, first = -1, last = -1;
@@ -1804,7 +1804,7 @@ cpc_set_weak_range( libspectrum_disk_t *d, int idx, buffer_t *buffer, int n,
  *
  */
 static int
-open_cpc( buffer_t *buffer, libspectrum_disk_t *d )
+open_cpc( buffer_t *buffer, libspectrum_disk *d )
 {
   int i, j, seclen, idlen, gap, preindex, idx;
   int bpt, max_bpt = 0, trlen;
@@ -2018,7 +2018,7 @@ open_cpc( buffer_t *buffer, libspectrum_disk_t *d )
 }
 
 static int
-open_scl( buffer_t *buffer, libspectrum_disk_t *d )
+open_scl( buffer_t *buffer, libspectrum_disk *d )
 {
   int i, j, s, sectors, seclen;
   int scl_deleted, scl_files, scl_i;
@@ -2130,7 +2130,7 @@ open_scl( buffer_t *buffer, libspectrum_disk_t *d )
  *
  */
 static int
-open_td0( buffer_t *buffer, libspectrum_disk_t *d )
+open_td0( buffer_t *buffer, libspectrum_disk *d )
 {
   int i, j, s, sectors, seclen, bpt, gap, mfm, mfm_old;
   int data_offset, track_offset, sector_offset, preindex;
@@ -2326,7 +2326,7 @@ open_td0( buffer_t *buffer, libspectrum_disk_t *d )
 
 /* update tracks TLEN */
 void
-disk_update_tlens( libspectrum_disk_t *d )
+disk_update_tlens( libspectrum_disk *d )
 {
   int i;
 
@@ -2348,7 +2348,7 @@ disk_update_tlens( libspectrum_disk_t *d )
  *   length    -> data length
  */
 libspectrum_disk_error_t
-libspectrum_disk_open( libspectrum_disk_t *d, libspectrum_byte *buffer,
+libspectrum_disk_open( libspectrum_disk *d, libspectrum_byte *buffer,
                        size_t length )
 {
   buffer_t b;
@@ -2458,8 +2458,8 @@ libspectrum_disk_open( libspectrum_disk_t *d, libspectrum_byte *buffer,
 
 /* create a two sided disk (d) from two one sided (d1 and d2) */
 libspectrum_disk_error_t
-libspectrum_disk_merge_sides( libspectrum_disk_t *d, libspectrum_disk_t *d1,
-                              libspectrum_disk_t *d2, int autofill )
+libspectrum_disk_merge_sides( libspectrum_disk *d, libspectrum_disk *d1,
+                              libspectrum_disk *d2, int autofill )
 {
   int i;
   int clen;
@@ -2519,7 +2519,7 @@ libspectrum_disk_merge_sides( libspectrum_disk_t *d, libspectrum_disk_t *d1,
 /*--------------------- start of write section ----------------*/
 
 static int
-write_udi( buffer_t *b, libspectrum_disk_t *d )
+write_udi( buffer_t *b, libspectrum_disk *d )
 {
   int i, j, error;
   size_t len;
@@ -2600,7 +2600,7 @@ write_udi( buffer_t *b, libspectrum_disk_t *d )
 savetrack()
 */
 static int
-write_img_mgt_opd( buffer_t *b, libspectrum_disk_t *d )
+write_img_mgt_opd( buffer_t *b, libspectrum_disk *d )
 {
   int i, j, sbase, sectors, seclen, mfm, cyl;
 
@@ -2637,7 +2637,7 @@ write_img_mgt_opd( buffer_t *b, libspectrum_disk_t *d )
 savetrack()
 */
 static int
-write_d40_d80( buffer_t *b, libspectrum_disk_t *d )
+write_d40_d80( buffer_t *b, libspectrum_disk *d )
 {
   int i, j, sbase, sectors, seclen, mfm, cyl;
 
@@ -2665,7 +2665,7 @@ write_d40_d80( buffer_t *b, libspectrum_disk_t *d )
 savetrack()
 */
 static int
-write_trd( buffer_t *b, libspectrum_disk_t *d )
+write_trd( buffer_t *b, libspectrum_disk *d )
 {
   int i, j, sbase, sectors, seclen, mfm, cyl;
 
@@ -2689,7 +2689,7 @@ write_trd( buffer_t *b, libspectrum_disk_t *d )
 savetrack()
 */
 static int
-write_sad( buffer_t *b, libspectrum_disk_t *d )
+write_sad( buffer_t *b, libspectrum_disk *d )
 {
   int i, j, sbase, sectors, seclen, mfm, cyl;
   libspectrum_byte head[256];
@@ -2720,7 +2720,7 @@ write_sad( buffer_t *b, libspectrum_disk_t *d )
 saverawtrack()
 */
 static int
-write_fdi( buffer_t *b, libspectrum_disk_t *d )
+write_fdi( buffer_t *b, libspectrum_disk *d )
 {
   int i, j, k, sbase, sectors, seclen, mfm, del;
   int h, t, s, l;
@@ -2809,7 +2809,7 @@ write_fdi( buffer_t *b, libspectrum_disk_t *d )
 saverawtrack()
 */
 static int
-write_cpc( buffer_t *b, libspectrum_disk_t *d )
+write_cpc( buffer_t *b, libspectrum_disk *d )
 {
   int i, j, k, sbase, sectors, seclen, mfm, cyl;
   int h, t, s, l;
@@ -2870,7 +2870,7 @@ write_cpc( buffer_t *b, libspectrum_disk_t *d )
 }
 
 static int
-write_scl( buffer_t *b, libspectrum_disk_t *d )
+write_scl( buffer_t *b, libspectrum_disk *d )
 {
   int i, j, k, l, t, s, sbase, sectors, seclen, mfm, del, cyl;
   int entries;
@@ -2986,7 +2986,7 @@ write_scl( buffer_t *b, libspectrum_disk_t *d )
   a problem
 */
 static int
-write_log( buffer_t *b, libspectrum_disk_t *d )
+write_log( buffer_t *b, libspectrum_disk *d )
 {
   int i, j, k, del, fmf, rev;
   int h, t, s, l;
@@ -3093,7 +3093,7 @@ write_log( buffer_t *b, libspectrum_disk_t *d )
     User must free *buffer!
 */
 libspectrum_disk_error_t
-libspectrum_disk_write( libspectrum_disk_t *d, libspectrum_byte **buffer,
+libspectrum_disk_write( libspectrum_disk *d, libspectrum_byte **buffer,
                         size_t *length, const char *filename )
 {
   buffer_t b;

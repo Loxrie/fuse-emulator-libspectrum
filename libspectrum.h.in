@@ -1137,7 +1137,7 @@ typedef enum libspectrum_disk_open_flag_t {
 
 } libspectrum_disk_open_flag_t;
 
-typedef struct libspectrum_disk_t {
+typedef struct libspectrum_disk {
   char *filename;	/* original filename */
   int sides;		/* 1 or 2 */
   int cylinders;	/* tracks per side */
@@ -1158,11 +1158,11 @@ typedef struct libspectrum_disk_t {
   int i;			/* index for track and clocks */
   libspectrum_disk_type_t type;		/* DISK_UDI, ... */
   libspectrum_disk_dens_t density;	/* DISK_SD DISK_DD, or DISK_HD */
-} libspectrum_disk_t;
+} libspectrum_disk;
 
-/* set libspectrum_disk_t pointers to the desired track */
+/* set libspectrum_disk pointers to the desired track */
 WIN32_DLL libspectrum_disk_error_t
-libspectrum_disk_set_track( libspectrum_disk_t *d, int head, int cyl );
+libspectrum_disk_set_track( libspectrum_disk *d, int head, int cyl );
 
 WIN32_DLL const char *
 libspectrum_disk_strerror( libspectrum_disk_error_t error );
@@ -1174,7 +1174,7 @@ libspectrum_disk_strerror( libspectrum_disk_error_t error );
    type -> preferred image format if the disk is written to a file.
 */
 WIN32_DLL libspectrum_disk_error_t
-libspectrum_disk_new( libspectrum_disk_t *d, int sides, int cylinders,
+libspectrum_disk_new( libspectrum_disk *d, int sides, int cylinders,
                       libspectrum_disk_dens_t density,
                       libspectrum_disk_type_t type );
 
@@ -1186,15 +1186,15 @@ libspectrum_disk_new( libspectrum_disk_t *d, int sides, int cylinders,
    pre-index gap is generated with index mark (0xfc).
 */
 WIN32_DLL libspectrum_disk_error_t
-libspectrum_disk_open( libspectrum_disk_t *disk, libspectrum_byte *buffer,
+libspectrum_disk_open( libspectrum_disk *disk, libspectrum_byte *buffer,
                        size_t length );
 
 /* merge two one sided disk (d1, d2) to a two sided one (d),
    after merge closes d1 and d2
 */
 WIN32_DLL libspectrum_disk_error_t
-libspectrum_disk_merge_sides( libspectrum_disk_t *d, libspectrum_disk_t *d1,
-                              libspectrum_disk_t *d2, int autofill );
+libspectrum_disk_merge_sides( libspectrum_disk *d, libspectrum_disk *d1,
+                              libspectrum_disk *d2, int autofill );
 
 /* Write a disk image into a newly allocated buffer.
    d->type determines the format. In the case of LIBSPECTRUM_DISK_TYPE_NONE,
@@ -1203,16 +1203,16 @@ libspectrum_disk_merge_sides( libspectrum_disk_t *d, libspectrum_disk_t *d1,
    The ownership of `buffer' is transferred and should be freed.
 */
 WIN32_DLL libspectrum_disk_error_t
-libspectrum_disk_write( libspectrum_disk_t *d, libspectrum_byte **buffer,
+libspectrum_disk_write( libspectrum_disk *d, libspectrum_byte **buffer,
                         size_t *length, const char *filename );
 
 /* format disk to plus3 accept for formatting */
 WIN32_DLL libspectrum_disk_error_t
-libspectrum_disk_preformat( libspectrum_disk_t *d );
+libspectrum_disk_preformat( libspectrum_disk *d );
 
 /* close a disk and free buffers */
 WIN32_DLL void
-libspectrum_disk_close( libspectrum_disk_t *d );
+libspectrum_disk_close( libspectrum_disk *d );
 
 /* Calculate CRC for FDCs */
 WIN32_DLL libspectrum_word
@@ -1226,7 +1226,7 @@ libspectrum_disk_crc( libspectrum_word crc, libspectrum_byte data );
     Returns non-zero on success.
 */
 WIN32_DLL int
-libspectrum_disk_datamark_read( libspectrum_disk_t *d, int *deleted, int *fmf );
+libspectrum_disk_datamark_read( libspectrum_disk *d, int *deleted, int *fmf );
 
 /*  Read next sector's ID from current track/position.
     The current position (d->i) is moved after the 2 CRC bytes and points
@@ -1235,7 +1235,7 @@ libspectrum_disk_datamark_read( libspectrum_disk_t *d, int *deleted, int *fmf );
     Returns non-zero on success.
 */
 WIN32_DLL int
-libspectrum_disk_id_read( libspectrum_disk_t *d, int *head, int *track,
+libspectrum_disk_id_read( libspectrum_disk *d, int *head, int *track,
                           int *sector, int *length );
 
 /*  seek to `sector' sector in current track
@@ -1243,7 +1243,7 @@ libspectrum_disk_id_read( libspectrum_disk_t *d, int *head, int *track,
     d->i is moved after the 2 CRC bytes and points to the first GAP byte.
 */
 WIN32_DLL int
-libspectrum_disk_id_seek( libspectrum_disk_t *d, int sector, int *len );
+libspectrum_disk_id_seek( libspectrum_disk *d, int sector, int *len );
 
 /*  Seek the specified head/cyl/sector.
     If `len' is not NULL, it is set with the sector's length code.
@@ -1251,7 +1251,7 @@ libspectrum_disk_id_seek( libspectrum_disk_t *d, int sector, int *len );
     d->i is moved and points to the first data byte in the sector.
 */
 WIN32_DLL libspectrum_disk_error_t
-libspectrum_disk_seek( libspectrum_disk_t *d, int head, int cyl, int sector,
+libspectrum_disk_seek( libspectrum_disk *d, int head, int cyl, int sector,
                        int *len, int *del, int *fmf );
 
 /*  Read `snum' sector's data from head, cyl,
@@ -1268,7 +1268,7 @@ libspectrum_disk_seek( libspectrum_disk_t *d, int head, int cyl, int sector,
 */
 
 WIN32_DLL libspectrum_disk_error_t
-libspectrum_disk_read_sectors( libspectrum_disk_t *d,
+libspectrum_disk_read_sectors( libspectrum_disk *d,
                                int head, int cyl, int sector,
                                int *snum, int *del, libspectrum_byte **buffer,
                                size_t *length, int *prop, int *sprop );
@@ -1287,7 +1287,7 @@ libspectrum_disk_read_sectors( libspectrum_disk_t *d,
   start_data -> if !NULL the index of data pos (d->i)
 */
 WIN32_DLL int
-libspectrum_disk_data_add( libspectrum_disk_t *d, unsigned char *data, int len,
+libspectrum_disk_data_add( libspectrum_disk *d, unsigned char *data, int len,
                            int ddam, int gaptype, int crc_error,
                            int *start_data );
 
@@ -1305,7 +1305,7 @@ libspectrum_disk_data_add( libspectrum_disk_t *d, unsigned char *data, int len,
     LIBSPECTRUM_DISK_DDAM -> there are deleted sectors (DDAM)
 */
 WIN32_DLL int
-libspectrum_guess_track_geom( libspectrum_disk_t *d, int head, int track,
+libspectrum_guess_track_geom( libspectrum_disk *d, int head, int track,
                               int *sector_base, int *sectors, int *seclen,
                               int *mfm, int *interl );
 

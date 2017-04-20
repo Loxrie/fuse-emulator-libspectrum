@@ -1872,9 +1872,9 @@ Write `data' to register `reg' of the IDE channel `chn'.
 Floppy disk images
 ==================
 
-libspectrum uses the `libspectrum_disk_t' structure to represent
-a disk image. Essentially, a `libspectrum_disk_t' is a list of tracks
-in raw format, i.e., gaps, sync bytes, marks, data, crc, etc.
+libspectrum uses the `libspectrum_disk' structure to represent a disk
+image. Essentially, a `libspectrum_disk' is a list of tracks in raw
+format, i.e., gaps, sync bytes, marks, data, crc, etc.
 
   [ PRE-INDEX GAP ] [ POST-INDEX GAP ] [ ID RECORD 0 ] [ DATA RECORD 0 ] ...
                                       |-------------------------------->
@@ -1888,7 +1888,7 @@ sectors blocks.
 The routines for dealing with disks are:
 
 libspectrum_disk_error_t
-libspectrum_disk_new( libspectrum_disk_t *d, int sides, int cylinders,
+libspectrum_disk_new( libspectrum_disk *d, int sides, int cylinders,
                       libspectrum_disk_dens_t density,
                       libspectrum_disk_type_t type )
 
@@ -1899,13 +1899,13 @@ HD = 12500 or LIBSPECTRUM_DISK_DENS_AUTO).
 LIBSPECTRUM_DISK_UDI is recommended.
 
 libspectrum_disk_error_t
-libspectrum_disk_open( libspectrum_disk_t *d, libspectrum_byte *buffer,
+libspectrum_disk_open( libspectrum_disk *d, libspectrum_byte *buffer,
                        size_t length )
 
 Open a disk image from buffer. Identifies the disk type and rebuilds
 internally the disk geometry.
 
-Prior to the call to this function, some fields of libspectrum_disk_t should
+Prior to the call to this function, some fields of libspectrum_disk should
 be set, e.g., the filename of the file (d->filename) and the type (d->type)
 of image. In the case of LIBSPECTRUM_DISK_TYPE_NONE, the format is guessed
 from the filename extension in `filename' parameter.
@@ -1915,7 +1915,7 @@ LIBSPECTRUM_DISK_FLAG_PREIDX is set and the disk type is not UDI, then
 a pre-index gap is generated with index mark (0xfc).
 
 void
-libspectrum_disk_close( libspectrum_disk_t *d )
+libspectrum_disk_close( libspectrum_disk *d )
 
 Close a disk and free internal buffers allocated by `libspectrum_disk_open'
 or `libspectrum_disk_new'.
@@ -1927,7 +1927,7 @@ Calculate CRC by CRC-16-CCITT algorithm, used by floppy disk controllers
 to check data integrity.
 
 int
-libspectrum_disk_data_add( libspectrum_disk_t *d, unsigned char *data, int len,
+libspectrum_disk_data_add( libspectrum_disk *d, unsigned char *data, int len,
                            int ddam, int gaptype, int crc_error,
                            int *start_data )
 
@@ -1939,7 +1939,7 @@ Returns 0 on success.
                   datamark
 
 int
-libspectrum_disk_datamark_read( libspectrum_disk_t *d, int *deleted, int *fmf )
+libspectrum_disk_datamark_read( libspectrum_disk *d, int *deleted, int *fmf )
 
 Read next datamark from current track/position. The current position is
 moved and points to the first data byte in the sector.
@@ -1947,7 +1947,7 @@ moved and points to the first data byte in the sector.
 Returns non-zero on success.
 
 int
-libspectrum_disk_id_read( libspectrum_disk_t *d, int *head, int *track,
+libspectrum_disk_id_read( libspectrum_disk *d, int *head, int *track,
                           int *sector, int *length )
 
 Read next sector's ID from current track/position. The current position
@@ -1960,7 +1960,7 @@ success.
                                     ID
 
 int
-libspectrum_disk_id_seek( libspectrum_disk_t *d, int sector, int *len )
+libspectrum_disk_id_seek( libspectrum_disk *d, int sector, int *len )
 
 Seek a sector in the current track. The current position is moved after
 the 2 CRC bytes and points to the first GAP byte.
@@ -1968,20 +1968,20 @@ the 2 CRC bytes and points to the first GAP byte.
 Returns non-zero on success.
 
 libspectrum_disk_error_t
-libspectrum_disk_merge_sides( libspectrum_disk_t *d, libspectrum_disk_t *d1,
-                              libspectrum_disk_t *d2, int autofill )
+libspectrum_disk_merge_sides( libspectrum_disk *d, libspectrum_disk *d1,
+                              libspectrum_disk *d2, int autofill )
 
 Merge two disks `d1' and `d2' with one side into a to new disk `d' with two
 sides. After the merge, `d1' and `d2' disks are closed.
 
 libspectrum_disk_error_t
-libspectrum_disk_preformat( libspectrum_disk_t *d )
+libspectrum_disk_preformat( libspectrum_disk *d )
 
 Preformat a blank disk with a few tracks to allow a +3 machine to format
 the whole disk.
 
 libspectrum_disk_error_t
-libspectrum_disk_read_sectors( libspectrum_disk_t *d, int head, int cyl,
+libspectrum_disk_read_sectors( libspectrum_disk *d, int head, int cyl,
                                int sector, int *snum, int *del,
                                libspectrum_byte **buffer, size_t *length,
                                int *prop, int *sprop )
@@ -1993,7 +1993,7 @@ and should be freed. `buffer' is set to NULL if no data is found.
 `snum' and `del' are IN/OUT parameters, so their values could be overwritten.
 
 libspectrum_disk_error_t
-libspectrum_disk_seek( libspectrum_disk_t *d, int head, int cyl, int sector,
+libspectrum_disk_seek( libspectrum_disk *d, int head, int cyl, int sector,
                        int *len, int *del, int *fmf )
 
 Seek the specified head/cyl/sector and move the current position to the
@@ -2002,7 +2002,7 @@ first data byte in the sector.
 `del' and `mfm' are set to their respective data mark properties.
 
 libspectrum_disk_error_t
-libspectrum_disk_set_track( libspectrum_disk_t *d, int head, int cyl )
+libspectrum_disk_set_track( libspectrum_disk *d, int head, int cyl )
 
 Change the current track to the specified head (side) and cylinder.
 
@@ -2036,7 +2036,7 @@ read-only) about the disk format passed in the argument. The ownership is not
 transferred and should not be freed.
 
 libspectrum_disk_error_t
-libspectrum_disk_write( libspectrum_disk_t *d, libspectrum_byte **buffer,
+libspectrum_disk_write( libspectrum_disk *d, libspectrum_byte **buffer,
                         size_t *length, const char *filename )
 
 Write a disk image into a newly allocated buffer. d->type determines the
@@ -2046,7 +2046,7 @@ the filename extension in `filename' parameter. The fallback format is UDI.
 The ownership of `buffer' is transferred and should be freed.
 
 int
-libspectrum_guess_track_geom( libspectrum_disk_t *d, int head, int track,
+libspectrum_guess_track_geom( libspectrum_disk *d, int head, int track,
                               int *sector_base, int *sectors, int *seclen,
                               int *mfm, int *interl )
 
