@@ -1222,11 +1222,11 @@ libspectrum_disk_crc( libspectrum_word crc, libspectrum_byte data );
     The current position (d->i) is moved and points to the first data byte in
       the sector.
     `deleted' is set to 1 if data is marked as deleted.
-    If `fmf' is not NULL, it is set to 1 if datamark is FMF (3x 0xa1 bytes)
+    If `mfm' is not NULL, it is set to 1 if datamark is MFM (3x 0xa1 bytes)
     Returns non-zero on success.
 */
 WIN32_DLL int
-libspectrum_disk_datamark_read( libspectrum_disk *d, int *deleted, int *fmf );
+libspectrum_disk_datamark_read( libspectrum_disk *d, int *deleted, int *mfm );
 
 /*  Read next sector's ID from current track/position.
     The current position (d->i) is moved after the 2 CRC bytes and points
@@ -1252,7 +1252,7 @@ libspectrum_disk_id_seek( libspectrum_disk *d, int sector, int *len );
 */
 WIN32_DLL libspectrum_disk_error_t
 libspectrum_disk_seek( libspectrum_disk *d, int head, int cyl, int sector,
-                       int *len, int *del, int *fmf );
+                       int *len, int *del, int *mfm );
 
 /*  Read `snum' sector's data from head, cyl,
     sector into a buffer. if *del != 0 then read

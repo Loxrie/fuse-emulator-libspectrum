@@ -306,10 +306,10 @@ libspectrum_disk_id_read( libspectrum_disk *d, int *head, int *track,
 /*
   read next datamark from track (d->track, d->i)
 */
-#define datamark_read( d, deleted, fmf ) \
-  libspectrum_disk_datamark_read( d, deleted, fmf )
+#define datamark_read( d, deleted, mfm ) \
+  libspectrum_disk_datamark_read( d, deleted, mfm )
 int
-libspectrum_disk_datamark_read( libspectrum_disk *d, int *deleted, int *fmf )
+libspectrum_disk_datamark_read( libspectrum_disk *d, int *deleted, int *mfm )
 {
   int a1mark = 0;
 
@@ -323,8 +323,8 @@ libspectrum_disk_datamark_read( libspectrum_disk *d, int *deleted, int *fmf )
                ( libspectrum_bitmap_test( d->clocks, d->i ) || a1mark ) ) {
       /* 0xfe with clock or 0xfe after 0xa1 mark */
       *deleted = d->track[ d->i ] == 0xf8 ? 1 : 0;
-      if( fmf != NULL )
-        *fmf = a1mark ? 1 : 0;
+      if( mfm != NULL )
+        *mfm = a1mark ? 1 : 0;
       d->i++;
       return 1;
     } else {
@@ -365,7 +365,7 @@ libspectrum_disk_id_seek( libspectrum_disk *d, int sector, int *len )
 */
 libspectrum_disk_error_t
 libspectrum_disk_seek( libspectrum_disk *d, int head, int cyl, int sector,
-                       int *len, int *del, int *fmf )
+                       int *len, int *del, int *mfm )
 {
   if( !d || !del )
     return LIBSPECTRUM_DISK_BADPARAM;
@@ -375,7 +375,7 @@ libspectrum_disk_seek( libspectrum_disk *d, int head, int cyl, int sector,
 
   DISK_SET_TRACK( d, head, cyl );
   if( !libspectrum_disk_id_seek( d, sector, len ) ||
-      !datamark_read( d, del, fmf ) )
+      !datamark_read( d, del, mfm ) )
     return LIBSPECTRUM_DISK_SNFOUND;
 
   return LIBSPECTRUM_DISK_OK;
@@ -884,13 +884,13 @@ data_add( libspectrum_disk *d, buffer_t *buffer, unsigned char *data,
           int len, int ddam, int gaptype, int crc_error, int autofill,
           int *start_data )
 {
-  int length, dam, fmf = 0;
+  int length, dam, mfm = 0;
   libspectrum_word crc = 0xffff;
   disk_gap_t *g = &gaps[ gaptype ];
 
   if( gaptype == -1 ) {
     int del;
-    datamark_read( d, &del, &fmf );
+    datamark_read( d, &del, &mfm );
 /* overwrite dam with the given value */
     if( ddam == -1 ) {
       ;
@@ -903,12 +903,12 @@ data_add( libspectrum_disk *d, buffer_t *buffer, unsigned char *data,
   } else {
     if( datamark_add( d, ddam, gaptype ) )
       return 1;
-    fmf = g->mark >= 0 ? 1 : 0;
+    mfm = g->mark >= 0 ? 1 : 0;
   }
 /* read back the real DAM (theoretically it can be other than fb/f8 [0xf8...0xfe] ) */
   dam = d->track[d->i - 1];
 /* MFM crc += 3x 0xa1 */
-  if( fmf ) {
+  if( mfm ) {
     crc = libspectrum_disk_crc( crc, 0xa1 );
     crc = libspectrum_disk_crc( crc, 0xa1 );
     crc = libspectrum_disk_crc( crc, 0xa1 );
@@ -2988,7 +2988,7 @@ write_scl( buffer_t *b, libspectrum_disk *d )
 static int
 write_log( buffer_t *b, libspectrum_disk *d )
 {
-  int i, j, k, del, fmf, rev;
+  int i, j, k, del, mfm, rev;
   int h, t, s, l;
   char str[17];
   char head[257];
@@ -3005,9 +3005,9 @@ write_log( buffer_t *b, libspectrum_disk *d )
                   i, j, d->track[-1], d->track[-3] + 256 * d->track[-2] );
       while( id_read( d, &h, &t, &s, &l ) ) {
         buffprintf( b, "  h:%d t:%d s:%d l:%d(%d)", h, t, s, l, 0x80 << l );
-        if( datamark_read( d, &del, &fmf ) ) {
+        if( datamark_read( d, &del, &mfm ) ) {
           buffprintf( b, " %s(%sFM)\n", del ? "deleted" : "normal",
-                      fmf ? "M" : "" );
+                      mfm ? "M" : "" );
         } else {
           buffprintf( b, " noDAM\n" );
         }
@@ -3027,9 +3027,9 @@ write_log( buffer_t *b, libspectrum_disk *d )
       while( id_read( d, &h, &t, &s, &l ) ) {
         l = 0x80 << l;
         if( l > 16384 ) l = 16384; /* max HD track len is 12650 byte */
-        if( datamark_read( d, &del, &fmf ) ) {
+        if( datamark_read( d, &del, &mfm ) ) {
           buffprintf( b, "  h:%d t:%d s:%d l:%d (%s/%sFM)\n", h, t, s, l,
-                   del ? "deleted" : "normal", fmf ? "M" : "" );
+                   del ? "deleted" : "normal", mfm ? "M" : "" );
         } else {
           buffprintf( b, "  h:%d t:%d s:%d l:%d (missing data)\n", h,
                    t, s, l );

@@ -1939,11 +1939,11 @@ Returns 0 on success.
                   datamark
 
 int
-libspectrum_disk_datamark_read( libspectrum_disk *d, int *deleted, int *fmf )
+libspectrum_disk_datamark_read( libspectrum_disk *d, int *deleted, int *mfm )
 
 Read next datamark from current track/position. The current position is
 moved and points to the first data byte in the sector.
-`deleted' and `fmf' are set to their respective data mark properties.
+`deleted' and `mfm' are set to their respective data mark properties.
 Returns non-zero on success.
 
 int
@@ -1994,7 +1994,7 @@ and should be freed. `buffer' is set to NULL if no data is found.
 
 libspectrum_disk_error_t
 libspectrum_disk_seek( libspectrum_disk *d, int head, int cyl, int sector,
-                       int *len, int *del, int *fmf )
+                       int *len, int *del, int *mfm )
 
 Seek the specified head/cyl/sector and move the current position to the
 first data byte in the sector.
