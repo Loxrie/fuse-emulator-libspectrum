@@ -23,7 +23,11 @@
 
 #include <config.h>
 
+#include <stdio.h>
 #include <string.h>
+#ifdef HAVE_STRINGS_H
+#include <strings.h>		/* Needed for strcasecmp() on QNX6 */
+#endif				/* #ifdef HAVE_STRINGS_H */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
