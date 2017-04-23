@@ -473,10 +473,17 @@ libspectrum_disk_read_sectors( libspectrum_disk *d, int head, int cyl,
      than 0x03?
 */
         len = 0x80 << len; /* calculate length from code... */
-        if( b.len == 0 ) libspectrum_malloc( BUFF_ALLOC );
-        if( b.len - b.idx < len )
+
+        if( b.data == NULL ) {
+          b.data = libspectrum_new( unsigned char, BUFF_ALLOC );
+          b.len = BUFF_ALLOC;
+        }
+
+        if( b.len - b.idx < len ) {
           b.data = libspectrum_realloc( b.data, b.len + BUFF_ALLOC );
-        b.len += BUFF_ALLOC;
+          b.len += BUFF_ALLOC;
+        }
+
         read_sector_data( d, b.data + b.idx, len );
         b.idx += len;
         (*snum)++;		/* hmm.. ++ has greater precedence than * ?... */
