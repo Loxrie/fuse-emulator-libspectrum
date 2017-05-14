@@ -986,7 +986,7 @@ libspectrum_disk_data_add( libspectrum_disk *d, unsigned char *data, int len,
 }
 
 static int
-calc_sectorlen( int mfm, int sector_length, int gaptype )
+calc_sectorlen( int sector_length, int gaptype )
 {
   int len = 0;
   disk_gap_t *g = &gaps[ gaptype ];
@@ -1029,9 +1029,7 @@ trackgen( libspectrum_disk *d, buffer_t *buffer, int head, int track,
           int gap, int interleave, int autofill )
 {
   int i, s, pos;
-  int slen = calc_sectorlen( ( d->density != LIBSPECTRUM_DISK_SD &&
-                               d->density != LIBSPECTRUM_DISK_8_SD ),
-                             sector_length, gap );
+  int slen = calc_sectorlen( sector_length, gap );
   int idx;
 
   d->i = 0;
@@ -1721,9 +1719,9 @@ open_fdi( buffer_t *buffer, libspectrum_disk *d )
           return d->status = LIBSPECTRUM_DISK_OPEN;
       }
       if( ( head[ 0x0b + 7 * ( j % 35 ) ] & 0x3f ) != 0 ) {
-        bpt += calc_sectorlen( 1, 0x80 << head[ 0x0a + 7 * ( j % 35 ) ],
+        bpt += calc_sectorlen( 0x80 << head[ 0x0a + 7 * ( j % 35 ) ],
                                GAP_MINIMAL_MFM );
-        bpt_fm += calc_sectorlen( 0, 0x80 << head[ 0x0a + 7 * ( j % 35 ) ],
+        bpt_fm += calc_sectorlen( 0x80 << head[ 0x0a + 7 * ( j % 35 ) ],
                                   GAP_MINIMAL_FM );
       }
     }
@@ -1876,8 +1874,7 @@ open_cpc( buffer_t *buffer, libspectrum_disk *d )
           seclen > idlen && seclen % idlen )			/* seclen != N * len */
         return d->status = LIBSPECTRUM_DISK_OPEN;
 
-      bpt += calc_sectorlen( gap == GAP_MINIMAL_MFM ? 1 : 0,
-                             seclen > idlen ? idlen : seclen, gap );
+      bpt += calc_sectorlen( seclen > idlen ? idlen : seclen, gap );
       if( i < 84 && d->flag & LIBSPECTRUM_DISK_FLAG_PLUS3_CPC ) {
         if( j == 0 && buff[ 0x1b + 8 * j ] == 6 && seclen > 6144 )
           plus3_fix = LIBSPECTRUM_DISK_OFLAG_CPC_4;
@@ -2066,7 +2063,7 @@ open_scl( buffer_t *buffer, libspectrum_disk *d )
   /* we use 'head[]' to build TR-DOS directory */
   j = 0;			/* index for head[] */
   memset( head, 0, 256 );
-  seclen = calc_sectorlen( 1, 256, GAP_TRDOS );	/* one sector raw length */
+  seclen = calc_sectorlen( 256, GAP_TRDOS );	/* one sector raw length */
   for( i = 0; i < scl_files; i++ ) {	/* read all entry and build TR-DOS dir */
     if( buffread( head + j, 14, buffer ) != 1 )
       return d->status = LIBSPECTRUM_DISK_OPEN;
@@ -2191,7 +2188,7 @@ open_td0( buffer_t *buffer, libspectrum_disk *d )
         if( buffavail( buffer ) < 9 )		/* check data header is avail. */
           return d->status = LIBSPECTRUM_DISK_OPEN;
 
-        bpt += calc_sectorlen( mfm_old || mfm, 0x80 << buff[3],
+        bpt += calc_sectorlen( 0x80 << buff[3],
                                mfm_old || mfm ? GAP_MINIMAL_FM : GAP_MINIMAL_MFM );
         if( buff[3] > seclen )
           seclen = buff[3];			/* biggest sector */
