@@ -1673,13 +1673,6 @@ open_trd( buffer_t *buffer, libspectrum_disk *d )
     }
   }
 
-/* FIXME: move back to fuse//disk.c
-  if( settings_current.auto_load ) {
-    position_context_save( d, &context );
-    trdos_insert_boot_loader( d );
-    position_context_restore( d, &context );
-  }
-*/
   return d->status = LIBSPECTRUM_DISK_OK;
 }
 
@@ -2124,13 +2117,6 @@ open_scl( buffer_t *buffer, libspectrum_disk *d )
       return d->status = LIBSPECTRUM_DISK_OPEN;
   }
 
-/* FIXME: move back to fuse//disk.c
-  if( settings_current.auto_load ) {
-    position_context_save( d, &context );
-    trdos_insert_boot_loader( d );
-    position_context_restore( d, &context );
-  }
-*/
   return d->status = LIBSPECTRUM_DISK_OK;
 }
 
